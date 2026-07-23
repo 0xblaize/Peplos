@@ -52,9 +52,14 @@ export default function OutfitPage() {
       </div>
 
       <div className="w-full md:w-1/3 h-1/2 md:h-full overflow-y-auto p-6 space-y-4">
-        <p className="text-xs uppercase tracking-widest opacity-70">
-          {data.weather.tempC}°C · {data.weather.condition}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-widest opacity-70">
+            {data.weather.tempC}°C · {data.weather.condition}
+          </p>
+          <a href="/wardrobe" className="text-xs underline opacity-75 hover:opacity-100">
+            Wardrobe →
+          </a>
+        </div>
         <h1 className="text-2xl font-bold">Today&apos;s Outfit</h1>
 
         <div className="space-y-3">

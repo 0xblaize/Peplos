@@ -5,7 +5,6 @@
 # Local-only environment and app artifacts
 .env
 .env.*
-!.env.example
 
 node_modules
 .next
