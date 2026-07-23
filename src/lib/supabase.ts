@@ -23,4 +23,5 @@ export interface ClosetItem {
   color: string;
   model_url: string;
   in_laundry: boolean;
+  image_url?: string;
 }

@@ -22,6 +22,14 @@ export async function addClosetItem(item: ClosetItem): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function updateClosetItem(id: string, patch: Partial<ClosetItem>): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) throw new Error('Supabase is not configured');
+
+  const { error } = await supabase.from('closet_items').update(patch).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function setInLaundry(id: string, inLaundry: boolean): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase is not configured');

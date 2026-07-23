@@ -163,12 +163,12 @@ export default function Hero() {
           className="absolute inset-x-0 flex items-center justify-center pointer-events-none select-none"
           style={{
             zIndex: 2,
-            top: '18%',
+            top: '16%',
             fontFamily: "'Anton', sans-serif",
             fontSize: 'clamp(90px, 28vw, 380px)',
             fontWeight: 900,
             color: '#fff',
-            opacity: 1,
+            opacity: 0.24,
             lineHeight: 1,
             textTransform: 'uppercase',
             letterSpacing: '-0.02em',
@@ -221,22 +221,21 @@ export default function Hero() {
         {/* Bottom-left copy + nav */}
         <div
           className="absolute bottom-6 left-4 sm:bottom-20 sm:left-24"
-          style={{ zIndex: 60, maxWidth: 320 }}
+          style={{ zIndex: 60, maxWidth: 420 }}
         >
           <p
-            className="mb-2 sm:mb-3 text-base sm:text-[22px] font-bold uppercase tracking-widest"
-            style={{ color: '#fff', opacity: 0.95, letterSpacing: '0.02em' }}
+            className="mb-2 sm:mb-3 text-base sm:text-[22px] font-bold uppercase tracking-[0.22em]"
+            style={{ color: '#fff', opacity: 0.95 }}
           >
             TODAY&apos;S OUTFIT
           </p>
           <p
             className="hidden sm:block text-xs sm:text-sm mb-4 sm:mb-5"
-            style={{ color: '#fff', opacity: 0.85, lineHeight: 1.6 }}
+            style={{ color: '#fff', opacity: 0.9, lineHeight: 1.6 }}
           >
-            Peplos reads your calendar, checks the weather, and scans your
-            closet for what&apos;s clean — then dresses your avatar in the
-            outfit that actually fits your day. No coats for board meetings,
-            no guesswork.
+            Peplos checks your calendar, the weather, and your clean closet to
+            pick a fit that matches the day ahead.
+            <span className="block mt-1">No board-meeting coat. No guesswork.</span>
           </p>
           <div className="flex gap-3">
             <button
@@ -288,7 +287,7 @@ export default function Hero() {
 
         {/* Bottom-right link */}
         <a
-          href="/outfit"
+          href="/dashboard"
           className="absolute bottom-6 right-4 sm:bottom-20 sm:right-10 flex items-center"
           style={{
             zIndex: 60,

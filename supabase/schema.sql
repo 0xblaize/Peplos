@@ -14,6 +14,8 @@ create table if not exists closet_items (
   created_at timestamptz not null default now()
 );
 
+alter table closet_items add column if not exists image_url text;
+
 alter table closet_items enable row level security;
 
 -- Hackathon-simple policies: anon key can fully manage the closet.
