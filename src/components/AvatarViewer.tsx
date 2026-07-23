@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, OrbitControls } from '@react-three/drei';
+import { Bounds, OrbitControls } from '@react-three/drei';
 import type { Group } from 'three';
 import type { ClosetItem } from '@/lib/supabase';
 import GarmentModel from './GarmentModel';
@@ -154,23 +154,34 @@ function AvatarBody({ items, spinTrigger = 0 }: { items: ClosetItem[]; spinTrigg
   );
 }
 
+const CANVAS_FALLBACK = (
+  <div className="w-full h-full flex items-center justify-center text-sm text-neutral-400 bg-neutral-50">
+    3D preview unavailable
+  </div>
+);
+
 export default function AvatarViewer({ items, spinTrigger }: AvatarViewerProps) {
   return (
     <div className="w-full h-full">
-      <Canvas camera={{ position: [0, 0.6, 4], fov: 40 }}>
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[3, 5, 2]} intensity={1.2} />
-          <AvatarBody items={items} spinTrigger={spinTrigger} />
-          <Environment preset="city" />
-          <OrbitControls
-            enablePan={false}
-            minDistance={2.5}
-            maxDistance={6}
-            target={[0, 0.8, 0]}
-          />
-        </Suspense>
-      </Canvas>
+      <ErrorBoundary fallback={CANVAS_FALLBACK}>
+        <Canvas camera={{ position: [0, 1, 4], fov: 40 }}>
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.7} />
+            <directionalLight position={[3, 5, 2]} intensity={1.2} />
+            <directionalLight position={[-3, 2, -2]} intensity={0.4} />
+            {/* Bounds auto-fits the camera to the avatar's real bounding
+                box (head to feet) so the whole body — legs included —
+                stays in frame no matter the canvas's aspect ratio, and
+                re-fits automatically when the outfit changes. No external
+                HDR/environment map is loaded here on purpose: that CDN
+                fetch is a needless failure point in production. */}
+            <Bounds fit clip observe margin={1.3}>
+              <AvatarBody items={items} spinTrigger={spinTrigger} />
+            </Bounds>
+            <OrbitControls makeDefault enablePan={false} minDistance={1.5} maxDistance={10} />
+          </Suspense>
+        </Canvas>
+      </ErrorBoundary>
     </div>
   );
 }
