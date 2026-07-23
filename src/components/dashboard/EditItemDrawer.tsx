@@ -47,7 +47,7 @@ export default function EditItemDrawer({ item, disabled, onClose, onSaved }: Edi
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-visibility ${item ? '' : 'pointer-events-none'}`}
+      className={`fixed inset-0 z-50 ${item ? '' : 'pointer-events-none'}`}
       aria-hidden={!item}
     >
       <div
