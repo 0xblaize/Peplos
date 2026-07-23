@@ -48,7 +48,7 @@ export default function DashboardPage() {
       .then(setOutfitData);
   }, [status]);
 
-  const activeOutfit = outfitData?.outfits[cycleIndex % outfitData.outfits.length];
+  const activeOutfit = outfitData ? outfitData.outfits[cycleIndex % outfitData.outfits.length] : undefined;
 
   const activeItems = (() => {
     if (!activeOutfit) return [];

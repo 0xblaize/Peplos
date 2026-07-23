@@ -1,4 +1,4 @@
-import { auth } from '@/auth';
+import { auth, isGoogleCalendarConfigured } from '@/auth';
 import { MOCK_SCHEDULE, type CalendarEvent } from './mockCalendar';
 import { fetchTodaysGoogleEvents } from './googleCalendar';
 
@@ -8,6 +8,10 @@ export interface ScheduleResult {
 }
 
 export async function getTodaysSchedule(): Promise<ScheduleResult> {
+  if (!isGoogleCalendarConfigured) {
+    return { events: MOCK_SCHEDULE, source: 'mock' };
+  }
+
   const session = await auth();
 
   if (session?.accessToken) {

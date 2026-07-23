@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ClipboardEvent } from 'react';
 import { UploadCloud, Loader2 } from 'lucide-react';
 import type { ClosetItem } from '@/lib/supabase';
 import { addClosetItem } from '@/lib/closet';
@@ -59,7 +59,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
     window.setTimeout(() => setStage('form'), 800);
   }, []);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragActive(false);
     if (disabled) return;
@@ -67,7 +67,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
     if (dropped?.type.startsWith('image/')) captureImage(dropped);
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  const handlePaste = (e: ClipboardEvent<HTMLDivElement>) => {
     if (disabled) return;
     const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith('image/'));
     const pasted = item?.getAsFile();
