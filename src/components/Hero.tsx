@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
@@ -286,7 +288,7 @@ export default function Hero() {
 
         {/* Bottom-right link */}
         <a
-          href="#outfit"
+          href="/outfit"
           className="absolute bottom-6 right-4 sm:bottom-20 sm:right-10 flex items-center"
           style={{
             zIndex: 60,

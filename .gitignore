@@ -1,0 +1,17 @@
+# Local editor / agent files
+.claude/
+.mode/
+
+# Local-only environment and app artifacts
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+out
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+
