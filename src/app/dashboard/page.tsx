@@ -117,6 +117,7 @@ export default function DashboardPage() {
             name: item.name,
             category: item.category,
             imageUrl: item.image_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80',
+            color: item.color,
           })),
           contextPrompt
         }),
