@@ -113,7 +113,11 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userImageUrl: basePhotoUrl,
-          garmentImageUrls: selectedGarments.map((item) => item.image_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80'),
+          garments: selectedGarments.map((item) => ({
+            name: item.name,
+            category: item.category,
+            imageUrl: item.image_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80',
+          })),
           contextPrompt
         }),
       });

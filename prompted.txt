@@ -1,0 +1,131 @@
+PEPLOS — GENERATIVE AI WARDROBE STUDIO
+========================================
+
+1. INTRODUCTION
+---------------
+Peplos is a web-based generative wardrobe studio. It combines a user's personal
+closet inventory, calendar schedule, and local weather into daily outfit
+recommendations and an AI-powered virtual try-on preview.
+
+2. WHAT IT DOES
+---------------
+- Landing page with an animated, full-screen carousel of outfit previews and a
+  call-to-action to enter the dashboard.
+- Dashboard / Lookbook studio:
+  - Upload a base-model photo for every virtual try-on.
+  - Browse a digital closet grid (tops, bottoms, outerwear, footwear, accessories,
+    gymwear, full outfits).
+  - Select one primary garment or pair a top + bottom (max 2 slots, or one
+    "full outfit" slot).
+  - Generate an editorial virtual-try-on image from the base photo + selected
+    garment images.
+  - Context engine reads the weather and today's calendar events to score each
+    outfit for formality and warmth, then picks three distinct options:
+    Formal, Smart Casual, and Layered for Rain.
+  - AI rationale polishing (optional) rewrites the outfit explanations in plain,
+    stylist language via Groq/Llama 3.
+  - Add garments by pasting, dropping, or browsing an image; supports Supabase
+    Storage when configured, otherwise works as a demo workspace.
+- Graceful fallbacks: when API keys are missing, the app uses deterministic mock
+  weather, a demo schedule, an in-memory closet, and rule-based rationales.
+
+3. STACK & TOOLS
+----------------
+Core
+  - Next.js 15 (App Router)
+  - React 19
+  - TypeScript 5
+  - Tailwind CSS 3.4
+
+3D / Visuals
+  - three
+  - @react-three/fiber
+  - @react-three/drei
+  - lucide-react (icons)
+
+Backend / Integrations
+  - NextAuth v5 (Auth.js) with Google OAuth for sign-in and Calendar read-only
+    access
+  - Supabase (supabase-js) for optional garment storage and closet persistence
+  - Groq SDK (llama-3.3-70b-versatile) for optional rationale polishing
+  - OpenWeatherMap API for optional real weather
+  - Google Calendar API for optional real schedule data
+
+Project layout
+  - src/app/           Next.js pages and API routes
+  - src/components/    React components, dashboard sub-components
+  - src/lib/           Business logic (closet, outfit engine, weather, groq, etc.)
+  - next.config.ts     Next.js configuration
+  - tailwind.config.js Tailwind theme and design tokens
+  - .env.example       Required environment variables
+
+4. ENVIRONMENT VARIABLES
+------------------------
+OPENWEATHER_API_KEY        # Weather (optional)
+GROQ_API_KEY               # LLM rationale polishing (optional)
+NEXT_PUBLIC_SUPABASE_URL   # Supabase project URL (optional)
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+AUTH_GOOGLE_ID             # Google OAuth (optional)
+AUTH_GOOGLE_SECRET
+AUTH_SECRET                # NextAuth session encryption
+
+5. PROMPT TO BUILD / PROMPT THIS PROJECT
+----------------------------------------
+Write a concise prompt you could feed to an AI coding assistant to reproduce this
+project. Below is a ready-to-use version:
+
+---
+
+Build a Next.js 15 App Router web app called "Peplos" — a generative AI wardrobe
+studio.
+
+Design & UX
+- Landing page: full-screen hero with a carousel of 4 outfit previews on stylized
+  3D-like avatars, smooth auto-advance, prev/next buttons, and a "See outfit"
+  link to the dashboard. Use a warm editorial palette (pink #E882B4, blue
+  #6EB5FF, lime #B4E882, cream #FAF7F5, dark #161415) and an Anton/Inter font
+  stack.
+- Dashboard: split-pane layout. Left side is the "Utility zone" (context bar,
+  base model card, closet grid, ingestion zone, generation action). Right side is
+  the "Lookbook stage" where the generated editorial image is revealed.
+
+Functionality
+1. Base model photo upload persisted in localStorage.
+2. Digital closet with items having category, name, color (hex), formality score
+   (0-10), warmth score (0-10), in_laundry boolean, gender, image_url, and optional
+   3D model_url. Categories: top, bottom, outerwear, footwear, accessory, gymwear,
+   full outfit.
+3. Selection rules: allow one primary garment or a top+bottom pair (max 2). A
+   "full outfit" item always occupies the single slot. Tap to toggle selection.
+4. Context engine: read OpenWeatherMap for current weather and the day's Google
+   Calendar events (or use deterministic mocks). Compute a DayContext with
+   formalityScore, thermalRequirement, rainy, and allIndoor.
+5. Outfit engine: generate candidate outfits from the available closet, filter out
+   color-clashing combinations, score by formality/thermal fit, and return three
+   options: Formal, Smart Casual, Layered for Rain.
+6. Polishing step: send the three options to Groq Llama 3 with a JSON prompt and
+   rewrite each rationale as a single upbeat sentence (max 20 words). Fall back to
+   the rule-based rationale if the LLM fails or is not configured.
+7. Virtual try-on: create an API route `/api/generate-fit` that accepts
+   userImageUrl, garmentImageUrls[], and an optional contextPrompt. For now return
+   a high-quality placeholder SVG that says "AI GENERATED FIT" and clearly mark it
+   mock mode, but structure the code so a real Fashn.ai or Replicate VTO request
+   can be swapped in later.
+8. Ingestion zone: allow the user to paste, drop, or browse an image and create a
+   new closet item. If Supabase is configured, upload to a "garments" bucket and
+   store the public URL; otherwise keep the item in local state for demo.
+9. Auth: use NextAuth v5 with an optional Google provider for sign-in and
+   Calendar read-only access. If Google credentials are missing, run in demo mode
+   with a mock schedule.
+10. Add privacy/terms pages and JSON-LD meta for the landing page.
+
+Tech stack
+- Next.js 15, React 19, TypeScript 5, Tailwind CSS 3.4
+- three, @react-three/fiber, @react-three/drei for any 3D scenes
+- next-auth, @supabase/supabase-js, groq-sdk, lucide-react
+- OpenWeatherMap and Google Calendar API integrations
+
+Deliver a working dev server (`npm run dev`), a clean `src/` layout, and an
+`.env.example` documenting all required keys.
+
+---
