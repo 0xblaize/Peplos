@@ -19,7 +19,7 @@ export type WearOccasion = 'casual' | 'gym' | 'office' | 'formal' | 'date' | 'lo
 export interface ClosetItem {
   id: string;
   name: string;
-  category: 'top' | 'bottom' | 'outerwear' | 'footwear' | 'accessory' | 'gymwear';
+  category: 'top' | 'bottom' | 'outerwear' | 'footwear' | 'accessory' | 'gymwear' | 'full outfit';
   formality: number; // 0 (loungewear) – 10 (black tie)
   warmth: number; // 0 (tank top) – 10 (parka)
   color: string;

@@ -5,7 +5,7 @@
 create table if not exists closet_items (
   id text primary key,
   name text not null,
-  category text not null check (category in ('top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear')),
+  category text not null check (category in ('top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear', 'full outfit')),
   formality smallint not null check (formality between 0 and 10),
   warmth smallint not null check (warmth between 0 and 10),
   color text not null,

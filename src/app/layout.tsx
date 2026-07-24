@@ -29,6 +29,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Google Search Console verification — also set via metadata API above */}
+        <meta name="google-site-verification" content="QSRgs5KtDyqMMWFoLRg0afCU2H2_OWtNt-P7fXGfL9o" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

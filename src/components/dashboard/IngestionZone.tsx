@@ -6,7 +6,7 @@ import type { ClosetItem, WearOccasion } from '@/lib/supabase';
 import { addClosetItem } from '@/lib/closet';
 import { getSupabaseClient } from '@/lib/supabase';
 
-const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear'];
+const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear', 'full outfit'];
 const WEAR_OPTIONS: WearOccasion[] = ['casual', 'gym', 'office', 'formal', 'date', 'lounge'];
 
 function slugify(name: string) {
@@ -132,13 +132,20 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
 
   if (stage === 'form') {
     return (
-      <div className="flex flex-col gap-5 rounded-2xl border border-peplos-line bg-peplos-panel/60 p-4 sm:flex-row sm:p-5">
+      <div className="flex flex-col gap-5 rounded-2xl border border-peplos-line bg-peplos-panel/60 p-4 sm:p-5">
         {previewUrl && (
-          <img
-            src={previewUrl}
-            alt="New garment preview"
-            className="w-full sm:w-32 h-40 object-cover rounded-xl bg-peplos-bg"
-          />
+          <div className="relative w-full sm:w-40 shrink-0">
+            <img
+              src={previewUrl}
+              alt="New garment preview"
+              className="w-full h-52 sm:h-48 object-cover rounded-xl bg-peplos-bg shadow-md"
+            />
+            {form.category === 'full outfit' && (
+              <div className="absolute bottom-2 left-2 right-2 rounded-lg bg-peplos-ink/80 backdrop-blur-sm px-2 py-1 text-center text-[9px] font-bold uppercase tracking-[0.15em] text-peplos-pink">
+                Full outfit — counts as 1 complete look
+              </div>
+            )}
+          </div>
         )}
         <form onSubmit={handleSubmit} className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3">
           <input

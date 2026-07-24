@@ -5,7 +5,7 @@ import { Check, X } from 'lucide-react';
 import type { ClosetItem, WearOccasion } from '@/lib/supabase';
 import { updateClosetItem } from '@/lib/closet';
 
-const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear'];
+const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear', 'full outfit'];
 const WEAR_OPTIONS: WearOccasion[] = ['casual', 'gym', 'office', 'formal', 'date', 'lounge'];
 
 interface EditItemDrawerProps {

@@ -60,13 +60,21 @@ export default function DashboardPage() {
   }, [isGenerating]);
 
   function handleSelectGarment(item: ClosetItem) {
-    // Only block if item is in laundry — missing image_url is fine for selection
-    // (the generate step will guard that separately)
     if (item.in_laundry) return;
     setSelectedGarments((current) => {
-      if (current.some((selected) => selected.id === item.id)) return current.filter((selected) => selected.id !== item.id);
+      // Deselect if already selected
+      if (current.some((s) => s.id === item.id)) return current.filter((s) => s.id !== item.id);
+      // Full outfit = complete look on its own, always replaces current selection
+      if (item.category === 'full outfit') return [item];
+      // If a full outfit is already selected, replace it
+      if (current.some((s) => s.category === 'full outfit')) return [item];
+      // First selection
       if (current.length === 0) return [item];
-      const canPair = current.length === 1 && ((current[0].category === 'top' && item.category === 'bottom') || (current[0].category === 'bottom' && item.category === 'top'));
+      // Allow pairing a top with a bottom (max 2)
+      const canPair =
+        current.length === 1 &&
+        ((current[0].category === 'top' && item.category === 'bottom') ||
+          (current[0].category === 'bottom' && item.category === 'top'));
       return canPair ? [...current, item] : [item];
     });
     setGeneratedResult(null);
