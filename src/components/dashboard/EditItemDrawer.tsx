@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Check, X } from 'lucide-react';
-import type { ClosetItem } from '@/lib/supabase';
+import type { ClosetItem, WearOccasion } from '@/lib/supabase';
 import { updateClosetItem } from '@/lib/closet';
 
-const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory'];
+const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear'];
+const WEAR_OPTIONS: WearOccasion[] = ['casual', 'gym', 'office', 'formal', 'date', 'lounge'];
 
 interface EditItemDrawerProps {
   item: ClosetItem | null;
@@ -26,7 +27,7 @@ export default function EditItemDrawer({ item, disabled, onClose, onSaved }: Edi
     setSaving(true);
     setError(null);
     try {
-      await updateClosetItem(form.id, { name: form.name, category: form.category, formality: form.formality, warmth: form.warmth, color: form.color, gender: form.gender });
+      await updateClosetItem(form.id, { name: form.name, category: form.category, formality: form.formality, warmth: form.warmth, color: form.color, gender: form.gender, wear: form.wear ?? [] });
       onSaved();
       onClose();
     } catch (err) {
@@ -57,6 +58,37 @@ export default function EditItemDrawer({ item, disabled, onClose, onSaved }: Edi
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-peplos-muted">Formality<input type="number" min={0} max={10} className="dashboard-input" value={form.formality} disabled={disabled} onChange={(e) => setForm({ ...form, formality: Number(e.target.value) })} /></label>
                   <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-peplos-muted">Warmth<input type="number" min={0} max={10} className="dashboard-input" value={form.warmth} disabled={disabled} onChange={(e) => setForm({ ...form, warmth: Number(e.target.value) })} /></label>
+                </div>
+                {/* Wear / Occasion tags */}
+                <div>
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-peplos-muted">Wear occasions</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {WEAR_OPTIONS.map((w) => {
+                      const active = (form.wear ?? []).includes(w);
+                      return (
+                        <button
+                          key={w}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              wear: active
+                                ? (form.wear ?? []).filter((x) => x !== w)
+                                : [...(form.wear ?? []), w],
+                            })
+                          }
+                          className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] border transition ${
+                            active
+                              ? 'bg-peplos-ink text-white border-peplos-ink'
+                              : 'bg-white text-peplos-muted border-peplos-line hover:border-peplos-ink hover:text-peplos-ink disabled:opacity-40'
+                          }`}
+                        >
+                          {w}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-peplos-muted">Signature color<input type="color" className="mt-2 h-12 w-full cursor-pointer rounded-xl border border-peplos-line bg-white p-1" value={form.color} disabled={disabled} onChange={(e) => setForm({ ...form, color: e.target.value })} /></label>
                 {error && <p className="text-xs text-red-600">{error}</p>}

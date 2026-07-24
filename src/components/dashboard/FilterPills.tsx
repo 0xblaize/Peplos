@@ -7,6 +7,7 @@ const FILTERS: Array<{ key: ClosetFilter; label: string }> = [
   { key: 'top', label: 'Tops' },
   { key: 'bottom', label: 'Bottoms' },
   { key: 'outerwear', label: 'Outerwear' },
+  { key: 'gymwear', label: 'Gym Wear' },
 ];
 
 interface FilterPillsProps {

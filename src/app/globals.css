@@ -19,6 +19,12 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
+@media (max-width: 768px) {
+  html {
+    zoom: 0.8;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

@@ -2,11 +2,12 @@
 
 import { useCallback, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent, type ClipboardEvent } from 'react';
 import { UploadCloud, Loader2 } from 'lucide-react';
-import type { ClosetItem } from '@/lib/supabase';
+import type { ClosetItem, WearOccasion } from '@/lib/supabase';
 import { addClosetItem } from '@/lib/closet';
 import { getSupabaseClient } from '@/lib/supabase';
 
-const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory'];
+const CATEGORIES: ClosetItem['category'][] = ['top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear'];
+const WEAR_OPTIONS: WearOccasion[] = ['casual', 'gym', 'office', 'formal', 'date', 'lounge'];
 
 function slugify(name: string) {
   return name
@@ -49,6 +50,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
     warmth: 5,
     color: '#888888',
     gender: 'unisex' as ClosetItem['gender'],
+    wear: [] as WearOccasion[],
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,7 +87,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
     setStage('idle');
     setPreviewUrl(null);
     setFile(null);
-    setForm({ name: '', category: 'top', formality: 5, warmth: 5, color: '#888888', gender: 'unisex' });
+    setForm({ name: '', category: 'top', formality: 5, warmth: 5, color: '#888888', gender: 'unisex', wear: [] });
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -116,6 +118,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
         in_laundry: false,
         image_url,
         gender: form.gender,
+        wear: form.wear,
       });
 
       reset();
@@ -164,28 +167,58 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
             <option value="female">Girl</option>
             <option value="male">Boy</option>
           </select>
-          <label className="flex items-center gap-2 rounded-xl border border-peplos-line bg-white px-3 py-3 text-xs text-peplos-muted">
-            Formality
+          <label className="flex items-center justify-between rounded-xl border border-peplos-line bg-white px-3 py-3 text-xs text-peplos-muted">
+            <span>Formality</span>
             <input
               type="number"
               min={0}
               max={10}
-              className="w-10"
+              className="w-12 rounded-lg border border-peplos-line bg-peplos-bg text-center text-sm font-medium text-peplos-ink"
               value={form.formality}
               onChange={(e) => setForm({ ...form, formality: Number(e.target.value) })}
             />
           </label>
-          <label className="flex items-center gap-2 rounded-xl border border-peplos-line bg-white px-3 py-3 text-xs text-peplos-muted">
-            Warmth
+          <label className="flex items-center justify-between rounded-xl border border-peplos-line bg-white px-3 py-3 text-xs text-peplos-muted">
+            <span>Warmth</span>
             <input
               type="number"
               min={0}
               max={10}
-              className="w-10"
+              className="w-12 rounded-lg border border-peplos-line bg-peplos-bg text-center text-sm font-medium text-peplos-ink"
               value={form.warmth}
               onChange={(e) => setForm({ ...form, warmth: Number(e.target.value) })}
             />
           </label>
+          {/* Wear / Occasion tags */}
+          <div className="col-span-2 sm:col-span-3">
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-peplos-muted">Wear occasions</p>
+            <div className="flex flex-wrap gap-1.5">
+              {WEAR_OPTIONS.map((w) => {
+                const active = form.wear.includes(w);
+                return (
+                  <button
+                    key={w}
+                    type="button"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        wear: active
+                          ? form.wear.filter((x) => x !== w)
+                          : [...form.wear, w],
+                      })
+                    }
+                    className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] border transition ${
+                      active
+                        ? 'bg-peplos-ink text-white border-peplos-ink'
+                        : 'bg-white text-peplos-muted border-peplos-line hover:border-peplos-ink hover:text-peplos-ink'
+                    }`}
+                  >
+                    {w}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <input
             type="color"
             className="col-span-2 h-11 w-full cursor-pointer rounded-xl border border-peplos-line bg-white sm:col-span-3"

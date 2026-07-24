@@ -5,7 +5,7 @@
 create table if not exists closet_items (
   id text primary key,
   name text not null,
-  category text not null check (category in ('top', 'bottom', 'outerwear', 'footwear', 'accessory')),
+  category text not null check (category in ('top', 'bottom', 'outerwear', 'footwear', 'accessory', 'gymwear')),
   formality smallint not null check (formality between 0 and 10),
   warmth smallint not null check (warmth between 0 and 10),
   color text not null,
@@ -19,10 +19,18 @@ alter table closet_items add column if not exists image_url text;
 alter table closet_items add column if not exists gender text not null default 'unisex'
   check (gender in ('male', 'female', 'unisex'));
 
+alter table closet_items add column if not exists wear text[] not null default '{}';
+
 alter table closet_items enable row level security;
 
 -- Hackathon-simple policies: anon key can fully manage the closet.
 -- Tighten to `auth.uid() = user_id` once accounts exist.
+drop policy if exists "anon can read closet" on closet_items;
+drop policy if exists "anon can insert closet" on closet_items;
+drop policy if exists "anon can update closet" on closet_items;
+drop policy if exists "anon can delete closet" on closet_items;
+drop policy if exists "public read garments" on storage.objects;
+
 create policy "anon can read closet" on closet_items
   for select using (true);
 
