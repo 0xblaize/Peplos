@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { CalendarDays, Check, ExternalLink, X } from 'lucide-react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { X, CalendarDays } from 'lucide-react';
+import { useGoogleCalendarStatus } from '@/components/useGoogleCalendarStatus';
 
 interface CalendarSyncModalProps {
   open: boolean;
@@ -11,58 +11,64 @@ interface CalendarSyncModalProps {
 
 export default function CalendarSyncModal({ open, onClose }: CalendarSyncModalProps) {
   const { data: session } = useSession();
-  const [googleConfigured, setGoogleConfigured] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/auth/config')
-      .then((res) => res.json())
-      .then((data) => setGoogleConfigured(Boolean(data.googleConfigured)))
-      .catch(() => setGoogleConfigured(false));
-  }, []);
+  const { googleConfigured, checking } = useGoogleCalendarStatus();
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div className="relative bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-        <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4">
-          <X size={18} />
-        </button>
-
-        <CalendarDays size={28} className="text-peplos-pink mb-3" />
-        <h2 className="text-lg font-bold mb-2">Calendar sync</h2>
-        <p className="text-sm text-neutral-600 mb-5">
-          We need to know if you&apos;re going to the gym or a gala so we don&apos;t dress you in
-          sweatpants for a wedding. Connecting your Google Calendar lets Peplos read today&apos;s
-          event titles and times — nothing is written back, and we only look at today.
-        </p>
-
-        {!googleConfigured ? (
-          <p className="text-xs text-neutral-400">
-            Google Calendar isn&apos;t configured for this deployment yet — Peplos is using a demo
-            schedule instead. See <code>.env.example</code> for the required keys.
-          </p>
-        ) : session ? (
-          <div className="space-y-3">
-            <p className="text-sm">
-              Connected as <span className="font-semibold">{session.user?.name}</span>.
-            </p>
-            <button
-              onClick={() => signOut()}
-              className="w-full rounded-full border-2 border-neutral-900 py-2.5 text-sm font-semibold"
-            >
-              Disconnect
-            </button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="calendar-modal-title">
+      <button type="button" onClick={onClose} aria-label="Close calendar settings" className="absolute inset-0 bg-peplos-ink/45 backdrop-blur-sm" />
+      <div className="relative w-full max-w-lg overflow-hidden rounded-4xl bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b border-peplos-line px-6 py-5 sm:px-8">
+          <div>
+            <p className="dashboard-eyebrow text-peplos-pink">Workspace connection</p>
+            <h2 id="calendar-modal-title" className="mt-2 text-2xl font-semibold tracking-[-0.04em]">Your calendar, in context.</h2>
           </div>
-        ) : (
-          <button
-            onClick={() => signIn('google')}
-            className="w-full rounded-full bg-peplos-pink text-white py-2.5 text-sm font-semibold"
-          >
-            Connect Google Calendar
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 text-neutral-400 transition hover:bg-peplos-panel hover:text-peplos-ink">
+            <X size={18} />
           </button>
-        )}
+        </div>
+
+        <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-8">
+          <div className="flex gap-4 rounded-2xl bg-peplos-panel p-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-peplos-pink shadow-sm">
+              <CalendarDays size={20} />
+            </span>
+            <p className="text-sm leading-6 text-peplos-muted">
+              Peplos reads today&apos;s events to understand the dress code — a client meeting, a gym session, or a late dinner. It never writes to your calendar.
+            </p>
+          </div>
+
+          {checking ? (
+            <div className="h-12 animate-pulse rounded-2xl bg-peplos-panel" />
+          ) : !googleConfigured ? (
+            <div className="rounded-2xl border border-dashed border-peplos-line p-4">
+              <p className="text-sm font-semibold text-peplos-ink">Google Calendar is not configured yet.</p>
+              <p className="mt-2 text-xs leading-5 text-peplos-muted">
+                Add <code className="rounded bg-peplos-panel px-1 py-0.5">AUTH_GOOGLE_ID</code> and <code className="rounded bg-peplos-panel px-1 py-0.5">AUTH_GOOGLE_SECRET</code> to the deployment environment, then add the OAuth callback URL from <code className="rounded bg-peplos-panel px-1 py-0.5">.env.example</code> in Google Cloud.
+              </p>
+              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-peplos-ink underline underline-offset-4">
+                Open Google Cloud credentials <ExternalLink size={12} />
+              </a>
+            </div>
+          ) : session ? (
+            <div className="flex items-center justify-between rounded-2xl border border-peplos-line p-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-peplos-lime/40 text-peplos-ink"><Check size={16} /></span>
+                <div>
+                  <p className="text-sm font-semibold">Calendar connected</p>
+                  <p className="text-xs text-peplos-muted">{session.user?.email ?? session.user?.name}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => signOut()} className="text-xs font-semibold text-peplos-muted underline underline-offset-4 hover:text-peplos-ink">Disconnect</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => signIn('google')} className="flex w-full items-center justify-center gap-2 rounded-full bg-peplos-ink px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-black">
+              <CalendarDays size={17} />
+              Connect Google Calendar
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

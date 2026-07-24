@@ -129,7 +129,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
 
   if (stage === 'form') {
     return (
-      <div className="mb-10 rounded-2xl border border-neutral-200 p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-5 rounded-2xl border border-peplos-line bg-peplos-panel/60 p-4 sm:flex-row sm:p-5">
         {previewUrl && (
           <img
             src={previewUrl}
@@ -139,13 +139,13 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
         )}
         <form onSubmit={handleSubmit} className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3">
           <input
-            className="col-span-2 sm:col-span-3 border border-neutral-200 rounded-md px-3 py-2 text-sm"
+            className="dashboard-input col-span-2 mt-0 sm:col-span-3"
             placeholder="Item name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
           <select
-            className="border border-neutral-200 rounded-md px-3 py-2 text-sm"
+            className="rounded-xl border border-peplos-line bg-white px-3.5 py-3 text-sm text-peplos-ink"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value as ClosetItem['category'] })}
           >
@@ -156,7 +156,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
             ))}
           </select>
           <select
-            className="border border-neutral-200 rounded-md px-3 py-2 text-sm"
+            className="rounded-xl border border-peplos-line bg-white px-3.5 py-3 text-sm text-peplos-ink"
             value={form.gender}
             onChange={(e) => setForm({ ...form, gender: e.target.value as ClosetItem['gender'] })}
           >
@@ -164,7 +164,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
             <option value="female">Girl</option>
             <option value="male">Boy</option>
           </select>
-          <label className="flex items-center gap-2 text-xs border border-neutral-200 rounded-md px-3 py-2">
+          <label className="flex items-center gap-2 rounded-xl border border-peplos-line bg-white px-3 py-3 text-xs text-peplos-muted">
             Formality
             <input
               type="number"
@@ -175,7 +175,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
               onChange={(e) => setForm({ ...form, formality: Number(e.target.value) })}
             />
           </label>
-          <label className="flex items-center gap-2 text-xs border border-neutral-200 rounded-md px-3 py-2">
+          <label className="flex items-center gap-2 rounded-xl border border-peplos-line bg-white px-3 py-3 text-xs text-peplos-muted">
             Warmth
             <input
               type="number"
@@ -188,7 +188,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
           </label>
           <input
             type="color"
-            className="col-span-2 sm:col-span-3 h-9 w-full rounded-md border border-neutral-200"
+            className="col-span-2 h-11 w-full cursor-pointer rounded-xl border border-peplos-line bg-white sm:col-span-3"
             value={form.color}
             onChange={(e) => setForm({ ...form, color: e.target.value })}
           />
@@ -197,14 +197,14 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
             <button
               type="submit"
               disabled={submitting || !form.name.trim()}
-              className="flex-1 rounded-md bg-peplos-pink text-white font-semibold py-2 text-sm disabled:opacity-50"
+              className="flex-1 rounded-full bg-peplos-ink py-3 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-50"
             >
               {submitting ? 'Adding…' : 'Add to closet'}
             </button>
             <button
               type="button"
               onClick={reset}
-              className="rounded-md border border-neutral-200 px-4 py-2 text-sm"
+              className="rounded-full border border-peplos-line bg-white px-5 py-3 text-sm text-peplos-muted transition hover:border-peplos-ink hover:text-peplos-ink"
             >
               Cancel
             </button>
@@ -224,8 +224,8 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
       onDrop={handleDrop}
       onPaste={handlePaste}
       tabIndex={0}
-      className={`mb-10 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors outline-none ${
-        dragActive ? 'border-peplos-pink bg-peplos-pink/5' : 'border-neutral-300'
+      className={`flex min-h-52 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors outline-none ${
+        dragActive ? 'border-peplos-pink bg-peplos-pink/10' : 'border-peplos-line bg-white/70 hover:border-peplos-pink/60'
       } ${disabled ? 'opacity-40 pointer-events-none' : ''}`}
     >
       {stage === 'processing' ? (

@@ -2,9 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --peplos-ink: #171516;
+  --peplos-muted: #777071;
+  --peplos-bg: #faf7f5;
+  --peplos-line: #e7dfda;
+}
+
 html,
 body {
   margin: 0;
-  padding: 0;
-  height: 100%;
+  min-height: 100%;
+  background: var(--peplos-bg);
+  color: var(--peplos-ink);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(232, 130, 180, 0.45);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(232, 130, 180, 0.32);
+}
+
+.dashboard-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-scroll::-webkit-scrollbar-thumb {
+  background: #d8cfca;
+  border-radius: 999px;
+}
+
+@layer components {
+  .dashboard-eyebrow {
+    @apply text-[10px] font-bold uppercase tracking-[0.28em] text-peplos-muted;
+  }
+
+  .dashboard-surface {
+    @apply rounded-3xl border border-peplos-line bg-white shadow-soft;
+  }
+
+  .dashboard-input {
+    @apply mt-2 w-full rounded-xl border border-peplos-line bg-[#fcfaf9] px-3.5 py-3 text-sm text-peplos-ink transition placeholder:text-neutral-400 focus:border-peplos-pink focus:bg-white;
+  }
 }

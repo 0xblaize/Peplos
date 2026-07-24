@@ -1,47 +1,49 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { CalendarDays, Check, Settings2 } from 'lucide-react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { CalendarDays } from 'lucide-react';
+import { useGoogleCalendarStatus } from './useGoogleCalendarStatus';
 
 export default function AuthButton() {
   const { data: session, status } = useSession();
-  const [googleConfigured, setGoogleConfigured] = useState(false);
+  const { googleConfigured, checking } = useGoogleCalendarStatus();
 
-  useEffect(() => {
-    fetch('/api/auth/config')
-      .then((res) => res.json())
-      .then((data) => setGoogleConfigured(Boolean(data.googleConfigured)))
-      .catch(() => setGoogleConfigured(false));
-  }, []);
+  if (checking || status === 'loading') {
+    return <span className="inline-block h-4 w-28 animate-pulse rounded-full bg-white/20" aria-label="Checking calendar connection" />;
+  }
 
   if (!googleConfigured) {
     return (
-      <span className="text-xs text-white/80">
-        Google sign-in isn&apos;t configured for this deployment.
+      <span className="flex max-w-[230px] items-center gap-2 text-left text-[11px] leading-4 text-white/70">
+        <Settings2 size={14} className="shrink-0 text-white/80" />
+        <span>Calendar connection is available once Google OAuth is configured.</span>
       </span>
     );
   }
-  if (status === 'loading') return null;
 
   if (session) {
     return (
       <button
+        type="button"
         onClick={() => signOut()}
-        className="flex items-center gap-1.5 text-xs text-white underline opacity-90 hover:opacity-100"
+        className="flex items-center gap-2 text-xs font-semibold text-white transition-opacity hover:opacity-75"
       >
-        <CalendarDays size={14} />
-        {session.user?.name ?? 'Signed in'} · Sign out
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
+          <Check size={13} />
+        </span>
+        {session.user?.name ?? 'Calendar connected'}
+        <span className="text-white/50">· Disconnect</span>
       </button>
     );
   }
 
   return (
     <button
+      type="button"
       onClick={() => signIn('google')}
-      className="flex items-center gap-1.5 text-xs text-white underline opacity-90 hover:opacity-100"
+      className="flex items-center gap-2 text-xs font-semibold text-white transition-opacity hover:opacity-75"
     >
-      <CalendarDays size={14} />
+      <CalendarDays size={15} />
       Connect Google Calendar
     </button>
   );
