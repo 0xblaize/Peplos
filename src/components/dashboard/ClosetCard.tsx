@@ -16,7 +16,8 @@ interface ClosetCardProps {
 export default function ClosetCard({ item, selected, disabled, onSelect, onOpen, onToggleDirty, onDelete }: ClosetCardProps) {
   return (
     <article className={`group relative overflow-hidden rounded-2xl border bg-white transition duration-300 hover:-translate-y-0.5 hover:shadow-card ${selected ? 'border-peplos-pink ring-2 ring-peplos-pink ring-offset-2 ring-offset-white' : 'border-peplos-line'} ${item.in_laundry ? 'opacity-60' : ''}`}>
-      <button type="button" onClick={() => !item.in_laundry && onSelect(item)} disabled={disabled || item.in_laundry} aria-pressed={selected} className="block w-full text-left disabled:cursor-not-allowed">
+      {/* Main tap-to-select button — always enabled unless in laundry */}
+      <button type="button" onClick={() => !item.in_laundry && onSelect(item)} disabled={item.in_laundry} aria-pressed={selected} className="block w-full text-left disabled:cursor-not-allowed">
         <div className="relative flex aspect-[4/4.5] items-center justify-center overflow-hidden" style={{ backgroundColor: `${item.color}20` }}>
           <div className="absolute left-3 top-3 z-10 rounded-full bg-white/80 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-peplos-muted backdrop-blur-sm">{item.in_laundry ? 'In laundry' : item.category}</div>
           {selected && <div className="absolute right-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-peplos-pink text-peplos-ink shadow-sm"><Check size={13} /></div>}
@@ -27,8 +28,10 @@ export default function ClosetCard({ item, selected, disabled, onSelect, onOpen,
 
       <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
         <button type="button" onClick={() => onOpen(item)} aria-label={`Edit ${item.name}`} title="Edit item" className="rounded-full bg-white/95 p-2 text-peplos-muted shadow-sm transition hover:scale-105 hover:text-peplos-ink"><MoreHorizontal size={13} /></button>
-        {!disabled && <><button type="button" onClick={() => onSelect(item)} disabled={item.in_laundry} aria-label="Select for look" title="Select for look" className="rounded-full bg-white/95 p-2 text-peplos-pink shadow-sm transition hover:scale-105 disabled:opacity-40"><Sparkles size={13} /></button><button type="button" onClick={() => onToggleDirty(item)} aria-label={item.in_laundry ? 'Mark clean' : 'Mark dirty'} title={item.in_laundry ? 'Mark clean' : 'Mark dirty'} className="rounded-full bg-white/95 p-2 text-peplos-muted shadow-sm transition hover:scale-105 hover:text-peplos-ink">{item.in_laundry ? <Check size={13} /> : <Droplets size={13} />}</button><button type="button" onClick={() => onDelete(item.id)} aria-label="Delete item" title="Delete item" className="rounded-full bg-white/95 p-2 text-peplos-muted shadow-sm transition hover:scale-105 hover:text-red-500"><Trash2 size={13} /></button></>}
+        <button type="button" onClick={() => onSelect(item)} disabled={item.in_laundry} aria-label="Select for look" title="Select for look" className="rounded-full bg-white/95 p-2 text-peplos-pink shadow-sm transition hover:scale-105 disabled:opacity-40"><Sparkles size={13} /></button>
+        {!disabled && <><button type="button" onClick={() => onToggleDirty(item)} aria-label={item.in_laundry ? 'Mark clean' : 'Mark dirty'} title={item.in_laundry ? 'Mark clean' : 'Mark dirty'} className="rounded-full bg-white/95 p-2 text-peplos-muted shadow-sm transition hover:scale-105 hover:text-peplos-ink">{item.in_laundry ? <Check size={13} /> : <Droplets size={13} />}</button><button type="button" onClick={() => onDelete(item.id)} aria-label="Delete item" title="Delete item" className="rounded-full bg-white/95 p-2 text-peplos-muted shadow-sm transition hover:scale-105 hover:text-red-500"><Trash2 size={13} /></button></>}
       </div>
     </article>
   );
 }
+

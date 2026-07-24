@@ -45,7 +45,7 @@ export default function Sandbox({ closet, persisted, filter, selectedGarments, b
         <div className="flex items-end justify-between gap-3"><div><p className="dashboard-eyebrow text-peplos-pink">03 / Digital inventory</p><h2 className="mt-1 text-lg font-semibold tracking-[-0.04em]">Choose your garment.</h2></div><span className="text-[10px] font-bold uppercase tracking-[0.15em] text-peplos-muted">{selectedGarments.length}/2 selected</span></div>
         <p className="mt-2 text-xs leading-5 text-peplos-muted">Select one primary piece, or pair a top with a bottom. Tap again to remove.</p>
         <div className="mt-4"><FilterPills active={filter} items={closet} onChange={onFilterChange} /></div>
-        <ClosetGrid items={closet} selectedIds={selectedGarments.map((item) => item.id)} filter={filter} disabled={!persisted} onSelect={onSelectGarment} onOpen={onOpenItem} onToggleDirty={onToggleDirty} onDelete={onDelete} />
+        <ClosetGrid items={closet} selectedIds={selectedGarments.map((item) => item.id)} filter={filter} disabled={false} onSelect={onSelectGarment} onOpen={onOpenItem} onToggleDirty={onToggleDirty} onDelete={onDelete} />
       </section>
 
       <section className="rounded-2xl border border-dashed border-peplos-line bg-white/60 p-4 sm:p-5"><div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-peplos-panel"><Plus size={14} /></span><div><p className="text-xs font-semibold">Add another piece</p><p className="text-[10px] text-peplos-muted">Paste, drop, or browse a garment photo.</p></div></div><IngestionZone disabled={!persisted} onAdded={onAdded} /></section>

@@ -60,7 +60,9 @@ export default function DashboardPage() {
   }, [isGenerating]);
 
   function handleSelectGarment(item: ClosetItem) {
-    if (item.in_laundry || !item.image_url) return;
+    // Only block if item is in laundry — missing image_url is fine for selection
+    // (the generate step will guard that separately)
+    if (item.in_laundry) return;
     setSelectedGarments((current) => {
       if (current.some((selected) => selected.id === item.id)) return current.filter((selected) => selected.id !== item.id);
       if (current.length === 0) return [item];
