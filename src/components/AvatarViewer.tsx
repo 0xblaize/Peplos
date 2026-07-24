@@ -8,10 +8,13 @@ import type { ClosetItem } from '@/lib/supabase';
 import GarmentModel from './GarmentModel';
 import ErrorBoundary from './ErrorBoundary';
 
+type AvatarGender = 'male' | 'female';
+
 interface AvatarViewerProps {
   items: ClosetItem[];
   /** Bump this number to play a one-off spin animation (e.g. on outfit generate). */
   spinTrigger?: number;
+  gender: AvatarGender;
 }
 
 interface SlotConfig {
@@ -104,7 +107,99 @@ function GarmentSlot({ item, slot }: { item?: ClosetItem; slot: SlotConfig }) {
   );
 }
 
-function AvatarBody({ items, spinTrigger = 0 }: { items: ClosetItem[]; spinTrigger?: number }) {
+const SKIN_TONES: Record<AvatarGender, string> = {
+  female: '#E8B892',
+  male: '#D9A876',
+};
+
+const HAIR_COLOR = '#3B2A20';
+
+/**
+ * A proportioned humanoid figure built from capsules/spheres — head, neck,
+ * torso, hips, arms, legs — instead of a single floating sphere. Body width
+ * (shoulders/hips) and hair silhouette differ slightly by gender. Garment
+ * boxes (see PrimitiveGarment) layer on top of this and cover most of the
+ * torso/legs/feet, so skin only really shows at the head, neck, and arms.
+ */
+function HumanBody({ gender }: { gender: AvatarGender }) {
+  const skin = SKIN_TONES[gender];
+  const shoulderWidth = gender === 'male' ? 0.42 : 0.36;
+  const hipWidth = gender === 'male' ? 0.32 : 0.38;
+  const armOffset = shoulderWidth + 0.08;
+
+  return (
+    <group>
+      {/* head */}
+      <mesh position={[0, 2.55, 0]}>
+        <sphereGeometry args={[0.28, 24, 24]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
+
+      {/* hair */}
+      {gender === 'female' ? (
+        <mesh position={[0, 2.42, -0.02]}>
+          <capsuleGeometry args={[0.3, 0.55, 4, 12]} />
+          <meshStandardMaterial color={HAIR_COLOR} />
+        </mesh>
+      ) : (
+        <mesh position={[0, 2.62, 0]}>
+          <sphereGeometry args={[0.3, 24, 24, 0, Math.PI * 2, 0, Math.PI / 1.8]} />
+          <meshStandardMaterial color={HAIR_COLOR} />
+        </mesh>
+      )}
+
+      {/* neck */}
+      <mesh position={[0, 2.32, 0]}>
+        <cylinderGeometry args={[0.09, 0.1, 0.18, 12]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
+
+      {/* torso: tapers from shoulders to hips so male/female silhouettes read differently */}
+      <mesh position={[0, 1.9, 0]} scale={[shoulderWidth / 0.36, 1, 0.5]}>
+        <capsuleGeometry args={[0.34, 0.55, 4, 12]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
+
+      {/* hips */}
+      <mesh position={[0, 1.5, 0]} scale={[hipWidth / 0.32, 0.7, 0.55]}>
+        <sphereGeometry args={[0.32, 16, 16]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
+
+      {/* arms */}
+      {[-1, 1].map((side) => (
+        <group key={side}>
+          <mesh position={[side * armOffset, 2.0, 0]} rotation={[0, 0, side * 0.08]}>
+            <capsuleGeometry args={[0.075, 0.55, 4, 8]} />
+            <meshStandardMaterial color={skin} />
+          </mesh>
+          <mesh position={[side * (armOffset + 0.02), 1.5, 0]}>
+            <sphereGeometry args={[0.07, 12, 12]} />
+            <meshStandardMaterial color={skin} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* legs */}
+      {[-0.15, 0.15].map((side) => (
+        <mesh key={side} position={[side, 0.9, 0]}>
+          <capsuleGeometry args={[0.13, 0.75, 4, 8]} />
+          <meshStandardMaterial color={skin} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function AvatarBody({
+  items,
+  spinTrigger = 0,
+  gender,
+}: {
+  items: ClosetItem[];
+  spinTrigger?: number;
+  gender: AvatarGender;
+}) {
   const find = (category: ClosetItem['category']) =>
     items.find((item) => item.category === category);
 
@@ -141,11 +236,7 @@ function AvatarBody({ items, spinTrigger = 0 }: { items: ClosetItem[]; spinTrigg
 
   return (
     <group ref={groupRef} position={[0, -1, 0]}>
-      {/* head — always a primitive; no base avatar rig yet */}
-      <mesh position={[0, 2.55, 0]}>
-        <sphereGeometry args={[0.28, 24, 24]} />
-        <meshStandardMaterial color="#E8B892" />
-      </mesh>
+      <HumanBody gender={gender} />
 
       {SLOTS.map((slot) => (
         <GarmentSlot key={slot.category} item={find(slot.category)} slot={slot} />
@@ -160,7 +251,7 @@ const CANVAS_FALLBACK = (
   </div>
 );
 
-export default function AvatarViewer({ items, spinTrigger }: AvatarViewerProps) {
+export default function AvatarViewer({ items, spinTrigger, gender }: AvatarViewerProps) {
   return (
     <div className="w-full h-full">
       <ErrorBoundary fallback={CANVAS_FALLBACK}>
@@ -176,7 +267,7 @@ export default function AvatarViewer({ items, spinTrigger }: AvatarViewerProps) 
                 HDR/environment map is loaded here on purpose: that CDN
                 fetch is a needless failure point in production. */}
             <Bounds fit clip observe margin={1.3}>
-              <AvatarBody items={items} spinTrigger={spinTrigger} />
+              <AvatarBody items={items} spinTrigger={spinTrigger} gender={gender} />
             </Bounds>
             <OrbitControls makeDefault enablePan={false} minDistance={1.5} maxDistance={10} />
           </Suspense>

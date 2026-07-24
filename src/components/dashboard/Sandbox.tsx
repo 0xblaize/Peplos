@@ -37,10 +37,9 @@ export default function Sandbox({
 
       {!persisted && (
         <div className="mb-6 rounded-xl border border-yellow-400/50 bg-yellow-50 px-4 py-3 text-xs text-yellow-800">
-          Supabase isn&apos;t configured, so you&apos;re viewing the built-in mock closet in
-          read-only mode. Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
-          <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> (see <code>supabase/schema.sql</code>) to add,
-          edit, and remove real items.
+          Supabase isn&apos;t configured yet, so there&apos;s no closet to show. Set{' '}
+          <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> (see{' '}
+          <code>supabase/schema.sql</code>) to add, edit, and remove real items.
         </div>
       )}
 

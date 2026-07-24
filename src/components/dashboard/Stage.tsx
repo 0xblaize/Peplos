@@ -4,8 +4,9 @@ import dynamic from 'next/dynamic';
 import { Sparkles, Check } from 'lucide-react';
 import type { ClosetItem } from '@/lib/supabase';
 import type { WeatherSnapshot } from '@/lib/weather';
-import type { CalendarEvent } from '@/lib/mockCalendar';
+import type { CalendarEvent } from '@/lib/schedule';
 import EnvironmentWidget from './EnvironmentWidget';
+import GenderToggle, { type AvatarGender } from './GenderToggle';
 
 const AvatarViewer = dynamic(() => import('@/components/AvatarViewer'), { ssr: false });
 
@@ -18,6 +19,8 @@ interface StageProps {
   onGenerate: () => void;
   onConfirm: () => void;
   confirming: boolean;
+  gender: AvatarGender;
+  onGenderChange: (gender: AvatarGender) => void;
 }
 
 export default function Stage({
@@ -29,12 +32,15 @@ export default function Stage({
   onGenerate,
   onConfirm,
   confirming,
+  gender,
+  onGenderChange,
 }: StageProps) {
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="relative flex-1 min-h-[320px]">
         <EnvironmentWidget weather={weather} nextEvent={nextEvent} />
-        <AvatarViewer items={activeItems} spinTrigger={spinTrigger} />
+        <GenderToggle value={gender} onChange={onGenderChange} />
+        <AvatarViewer items={activeItems} spinTrigger={spinTrigger} gender={gender} />
       </div>
 
       <div className="px-6 pb-6 pt-2 space-y-4">

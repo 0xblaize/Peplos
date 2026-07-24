@@ -1,4 +1,4 @@
-import type { CalendarEvent } from './mockCalendar';
+import type { CalendarEvent } from './schedule';
 
 const OUTDOOR_KEYWORDS = /park|hike|hiking|beach|trail|stadium|field|garden|patio|outdoor|picnic|festival|farmers market|bbq|barbecue/i;
 

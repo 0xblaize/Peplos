@@ -24,4 +24,5 @@ export interface ClosetItem {
   model_url: string;
   in_laundry: boolean;
   image_url?: string;
+  gender: 'male' | 'female' | 'unisex';
 }

@@ -19,6 +19,10 @@ export default function ClosetGrid({ items, filter, disabled, onOpen, onWearNow,
     return item.category === filter;
   });
 
+  if (items.length === 0) {
+    return <p className="text-sm text-neutral-400">No items yet — add your first garment above.</p>;
+  }
+
   if (filtered.length === 0) {
     return <p className="text-sm text-neutral-400">No items match this filter yet.</p>;
   }

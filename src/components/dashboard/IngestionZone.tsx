@@ -48,6 +48,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
     formality: 5,
     warmth: 5,
     color: '#888888',
+    gender: 'unisex' as ClosetItem['gender'],
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +85,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
     setStage('idle');
     setPreviewUrl(null);
     setFile(null);
-    setForm({ name: '', category: 'top', formality: 5, warmth: 5, color: '#888888' });
+    setForm({ name: '', category: 'top', formality: 5, warmth: 5, color: '#888888', gender: 'unisex' });
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -114,6 +115,7 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
         model_url: '',
         in_laundry: false,
         image_url,
+        gender: form.gender,
       });
 
       reset();
@@ -152,6 +154,15 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
                 {c}
               </option>
             ))}
+          </select>
+          <select
+            className="border border-neutral-200 rounded-md px-3 py-2 text-sm"
+            value={form.gender}
+            onChange={(e) => setForm({ ...form, gender: e.target.value as ClosetItem['gender'] })}
+          >
+            <option value="unisex">Unisex</option>
+            <option value="female">Girl</option>
+            <option value="male">Boy</option>
           </select>
           <label className="flex items-center gap-2 text-xs border border-neutral-200 rounded-md px-3 py-2">
             Formality

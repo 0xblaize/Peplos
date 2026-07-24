@@ -16,6 +16,9 @@ create table if not exists closet_items (
 
 alter table closet_items add column if not exists image_url text;
 
+alter table closet_items add column if not exists gender text not null default 'unisex'
+  check (gender in ('male', 'female', 'unisex'));
+
 alter table closet_items enable row level security;
 
 -- Hackathon-simple policies: anon key can fully manage the closet.

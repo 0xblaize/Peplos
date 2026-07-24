@@ -1,12 +1,14 @@
 import { getSupabaseClient, type ClosetItem } from './supabase';
-import { MOCK_CLOSET } from './mockCloset';
 
-export async function getCloset(): Promise<ClosetItem[]> {
+export async function getCloset(gender?: 'male' | 'female'): Promise<ClosetItem[]> {
   const supabase = getSupabaseClient();
-  if (!supabase) return MOCK_CLOSET;
+  if (!supabase) return [];
 
-  const { data, error } = await supabase.from('closet_items').select('*');
-  if (error || !data) return MOCK_CLOSET;
+  let query = supabase.from('closet_items').select('*');
+  if (gender) query = query.in('gender', ['unisex', gender]);
+
+  const { data, error } = await query;
+  if (error || !data) return [];
   return data as ClosetItem[];
 }
 

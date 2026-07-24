@@ -7,11 +7,13 @@ import { polishRationales } from '@/lib/groq';
 
 export async function GET(request: NextRequest) {
   const city = request.nextUrl.searchParams.get('city') ?? 'New York';
+  const genderParam = request.nextUrl.searchParams.get('gender');
+  const gender = genderParam === 'male' || genderParam === 'female' ? genderParam : undefined;
 
   try {
     const [weather, closet, schedule] = await Promise.all([
       getWeather(city),
-      getCloset(),
+      getCloset(gender),
       getTodaysSchedule(),
     ]);
     const context = computeDayContext(schedule.events, weather);

@@ -1,4 +1,4 @@
-import type { CalendarEvent } from './mockCalendar';
+import type { CalendarEvent } from './schedule';
 import type { ClosetItem } from './supabase';
 import type { WeatherSnapshot } from './weather';
 import { colorsClash } from './color';

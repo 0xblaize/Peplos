@@ -35,6 +35,7 @@ export default function EditItemDrawer({ item, disabled, onClose, onSaved }: Edi
         formality: form.formality,
         warmth: form.warmth,
         color: form.color,
+        gender: form.gender,
       });
       onSaved();
       onClose();
@@ -105,6 +106,20 @@ export default function EditItemDrawer({ item, disabled, onClose, onSaved }: Edi
                       {c}
                     </option>
                   ))}
+                </select>
+              </label>
+
+              <label className="block text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                Gender
+                <select
+                  className="mt-1 w-full border border-neutral-200 rounded-md px-3 py-2 text-sm font-normal normal-case"
+                  value={form.gender}
+                  disabled={disabled}
+                  onChange={(e) => setForm({ ...form, gender: e.target.value as ClosetItem['gender'] })}
+                >
+                  <option value="unisex">Unisex</option>
+                  <option value="female">Girl</option>
+                  <option value="male">Boy</option>
                 </select>
               </label>
 

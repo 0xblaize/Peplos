@@ -5,9 +5,10 @@ import { useSession } from 'next-auth/react';
 import type { ClosetItem } from '@/lib/supabase';
 import type { DayContext, OutfitOption } from '@/lib/outfitEngine';
 import type { WeatherSnapshot } from '@/lib/weather';
-import type { CalendarEvent } from '@/lib/mockCalendar';
+import type { CalendarEvent } from '@/lib/schedule';
 import { getCloset, isClosetPersisted, setInLaundry, deleteClosetItem } from '@/lib/closet';
 import Stage from '@/components/dashboard/Stage';
+import type { AvatarGender } from '@/components/dashboard/GenderToggle';
 import Sandbox from '@/components/dashboard/Sandbox';
 import EditItemDrawer from '@/components/dashboard/EditItemDrawer';
 import CalendarSyncModal from '@/components/dashboard/CalendarSyncModal';
@@ -16,7 +17,7 @@ import type { ClosetFilter } from '@/components/dashboard/FilterPills';
 interface OutfitResponse {
   weather: WeatherSnapshot;
   schedule: CalendarEvent[];
-  scheduleSource: 'google' | 'mock';
+  scheduleSource: 'google' | 'none';
   context: DayContext;
   outfits: OutfitOption[];
 }
@@ -34,19 +35,20 @@ export default function DashboardPage() {
   const [selectedItem, setSelectedItem] = useState<ClosetItem | null>(null);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [gender, setGender] = useState<AvatarGender>('female');
 
   const refreshCloset = useCallback(() => {
-    getCloset().then(setCloset);
-  }, []);
+    getCloset(gender).then(setCloset);
+  }, [gender]);
 
   useEffect(refreshCloset, [refreshCloset]);
 
   useEffect(() => {
     if (status === 'loading') return;
-    fetch('/api/outfit')
+    fetch(`/api/outfit?gender=${gender}`)
       .then((res) => res.json())
       .then(setOutfitData);
-  }, [status]);
+  }, [status, gender]);
 
   const activeOutfit = outfitData ? outfitData.outfits[cycleIndex % outfitData.outfits.length] : undefined;
 
@@ -126,6 +128,8 @@ export default function DashboardPage() {
             onGenerate={handleGenerate}
             onConfirm={handleConfirm}
             confirming={confirming}
+            gender={gender}
+            onGenderChange={setGender}
           />
         </div>
       </div>

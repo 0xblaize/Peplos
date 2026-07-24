@@ -1,6 +1,6 @@
 import { CloudSun } from 'lucide-react';
 import type { WeatherSnapshot } from '@/lib/weather';
-import type { CalendarEvent } from '@/lib/mockCalendar';
+import type { CalendarEvent } from '@/lib/schedule';
 
 interface EnvironmentWidgetProps {
   weather: WeatherSnapshot;
