@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import AuthButton from './AuthButton';
 
 interface OutfitPreview {
   src: string;
@@ -184,6 +185,13 @@ export default function Hero() {
           style={{ zIndex: 60, color: '#fff', opacity: 0.9, letterSpacing: '0.18em' }}
         >
           PEPLOS
+        </div>
+
+        <div
+          className="absolute top-5 right-4 sm:top-6 sm:right-8 rounded-full px-3 py-2"
+          style={{ zIndex: 60, color: '#fff', backgroundColor: 'rgba(0,0,0,0.14)' }}
+        >
+          <AuthButton />
         </div>
 
         {/* Carousel */}

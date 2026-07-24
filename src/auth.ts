@@ -41,6 +41,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (typeof token.accessToken === 'string') {
         session.accessToken = token.accessToken;
       }
+      if (session.user && typeof token.sub === 'string') {
+        session.user.id = token.sub;
+      }
       return session;
     },
   },

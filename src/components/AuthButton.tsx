@@ -15,14 +15,20 @@ export default function AuthButton() {
       .catch(() => setGoogleConfigured(false));
   }, []);
 
-  if (!googleConfigured) return null;
+  if (!googleConfigured) {
+    return (
+      <span className="text-xs text-white/80">
+        Google sign-in isn&apos;t configured for this deployment.
+      </span>
+    );
+  }
   if (status === 'loading') return null;
 
   if (session) {
     return (
       <button
         onClick={() => signOut()}
-        className="flex items-center gap-1.5 text-xs underline opacity-75 hover:opacity-100"
+        className="flex items-center gap-1.5 text-xs text-white underline opacity-90 hover:opacity-100"
       >
         <CalendarDays size={14} />
         {session.user?.name ?? 'Signed in'} · Sign out
@@ -33,7 +39,7 @@ export default function AuthButton() {
   return (
     <button
       onClick={() => signIn('google')}
-      className="flex items-center gap-1.5 text-xs underline opacity-75 hover:opacity-100"
+      className="flex items-center gap-1.5 text-xs text-white underline opacity-90 hover:opacity-100"
     >
       <CalendarDays size={14} />
       Connect Google Calendar

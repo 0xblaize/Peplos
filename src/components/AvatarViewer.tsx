@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Bounds, OrbitControls } from '@react-three/drei';
+import { Bounds, ContactShadows, Environment, OrbitControls } from '@react-three/drei';
 import type { Group } from 'three';
 import type { ClosetItem } from '@/lib/supabase';
 import GarmentModel from './GarmentModel';
@@ -36,51 +36,78 @@ function hasRealModel(item: ClosetItem | undefined): item is ClosetItem {
   return Boolean(item?.model_url && item.model_url.trim().length > 0);
 }
 
-/** Colored-box placeholder used until real garment meshes exist for a slot. */
+/** Generic garment silhouettes whose materials are driven by closet metadata. */
 function PrimitiveGarment({ item, category }: { item?: ClosetItem; category: ClosetItem['category'] }) {
   const color = item?.color ?? '#999999';
+  const name = item?.name ?? '';
+  const isHoodie = /hoodie|sweatshirt|sweater/i.test(name);
+  const isJacket = /jacket|coat|blazer|overcoat|parka/i.test(name);
 
   if (category === 'top') {
     return (
-      <mesh position={[0, 1.9, 0]}>
-        <boxGeometry args={[0.7, 0.9, 0.35]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
+      <group>
+        <mesh position={[0, 1.9, 0]} castShadow>
+          <capsuleGeometry args={[isHoodie ? 0.39 : 0.34, isHoodie ? 0.62 : 0.55, 4, 12]} />
+          <meshStandardMaterial color={color} roughness={0.85} />
+        </mesh>
+        <mesh position={[-0.43, 2.02, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <capsuleGeometry args={[0.09, 0.4, 4, 8]} />
+          <meshStandardMaterial color={color} roughness={0.85} />
+        </mesh>
+        <mesh position={[0.43, 2.02, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+          <capsuleGeometry args={[0.09, 0.4, 4, 8]} />
+          <meshStandardMaterial color={color} roughness={0.85} />
+        </mesh>
+        {isHoodie && (
+          <mesh position={[0, 2.28, -0.03]} castShadow>
+            <torusGeometry args={[0.13, 0.055, 8, 16]} />
+            <meshStandardMaterial color={color} roughness={0.9} />
+          </mesh>
+        )}
+      </group>
     );
   }
+
   if (category === 'outerwear') {
     return (
-      <mesh position={[0, 1.85, 0.02]}>
-        <boxGeometry args={[0.82, 1.05, 0.4]} />
-        <meshStandardMaterial color={color} transparent opacity={0.92} />
-      </mesh>
-    );
-  }
-  if (category === 'bottom') {
-    return (
       <group>
-        <mesh position={[-0.18, 0.95, 0]}>
-          <boxGeometry args={[0.28, 1, 0.3]} />
-          <meshStandardMaterial color={color} />
+        <mesh position={[0, 1.88, 0.04]} castShadow>
+          <capsuleGeometry args={[isJacket ? 0.42 : 0.39, 0.68, 4, 12]} />
+          <meshStandardMaterial color={color} roughness={0.7} />
         </mesh>
-        <mesh position={[0.18, 0.95, 0]}>
-          <boxGeometry args={[0.28, 1, 0.3]} />
-          <meshStandardMaterial color={color} />
+        <mesh position={[-0.49, 1.98, 0.04]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <capsuleGeometry args={[0.1, 0.44, 4, 8]} />
+          <meshStandardMaterial color={color} roughness={0.7} />
+        </mesh>
+        <mesh position={[0.49, 1.98, 0.04]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+          <capsuleGeometry args={[0.1, 0.44, 4, 8]} />
+          <meshStandardMaterial color={color} roughness={0.7} />
         </mesh>
       </group>
     );
   }
-  // footwear
+
+  if (category === 'bottom') {
+    return (
+      <group>
+        {[-0.17, 0.17].map((side) => (
+          <mesh key={side} position={[side, 0.96, 0]} castShadow>
+            <capsuleGeometry args={[0.16, 0.72, 4, 10]} />
+            <meshStandardMaterial color={color} roughness={0.85} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+
   return (
     <group>
-      <mesh position={[-0.18, 0.35, 0.05]}>
-        <boxGeometry args={[0.3, 0.2, 0.42]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      <mesh position={[0.18, 0.35, 0.05]}>
-        <boxGeometry args={[0.3, 0.2, 0.42]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
+      {[-0.18, 0.18].map((side) => (
+        <mesh key={side} position={[side, 0.35, 0.08]} castShadow>
+          <capsuleGeometry args={[0.16, 0.18, 4, 10]} />
+          <meshStandardMaterial color={color} roughness={0.55} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -255,11 +282,17 @@ export default function AvatarViewer({ items, spinTrigger, gender }: AvatarViewe
   return (
     <div className="w-full h-full">
       <ErrorBoundary fallback={CANVAS_FALLBACK}>
-        <Canvas camera={{ position: [0, 1, 4], fov: 40 }}>
+        <Canvas shadows camera={{ position: [0, 1, 4], fov: 40 }}>
           <Suspense fallback={null}>
             <ambientLight intensity={0.7} />
-            <directionalLight position={[3, 5, 2]} intensity={1.2} />
+            <directionalLight
+              castShadow
+              position={[3, 5, 2]}
+              intensity={1.2}
+              shadow-mapSize={[1024, 1024]}
+            />
             <directionalLight position={[-3, 2, -2]} intensity={0.4} />
+            <Environment preset="city" />
             {/* Bounds auto-fits the camera to the avatar's real bounding
                 box (head to feet) so the whole body — legs included —
                 stays in frame no matter the canvas's aspect ratio, and
@@ -269,7 +302,15 @@ export default function AvatarViewer({ items, spinTrigger, gender }: AvatarViewe
             <Bounds fit clip observe margin={1.3}>
               <AvatarBody items={items} spinTrigger={spinTrigger} gender={gender} />
             </Bounds>
-            <OrbitControls makeDefault enablePan={false} minDistance={1.5} maxDistance={10} />
+            <ContactShadows position={[0, -1, 0]} opacity={0.35} scale={5} blur={2} far={4} />
+            <OrbitControls
+              makeDefault
+              enablePan={false}
+              minDistance={1.5}
+              maxDistance={10}
+              minPolarAngle={Math.PI / 4}
+              maxPolarAngle={Math.PI / 2}
+            />
           </Suspense>
         </Canvas>
       </ErrorBoundary>
