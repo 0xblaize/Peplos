@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Groq from 'groq-sdk';
 
 interface GarmentInput {
   name: string;
@@ -45,7 +44,6 @@ async function uploadBase64ToSupabase(base64DataUrl: string, prefix: string): Pr
 
 async function generateFallbackSVG(targetGarment: GarmentInput, contextText: string): Promise<string> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
-  const groqKey = process.env.GROQ_API_KEY;
   
   const garmentColor = targetGarment.color || '#E882B4';
   const prompt = `You are a premium vector graphic designer. 
@@ -65,7 +63,7 @@ Requirements:
 
   let svgText = '';
 
-  // 1. Try Claude (Anthropic) first if key is present
+  // Try Claude (Anthropic) if key is present
   if (anthropicKey) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -86,23 +84,7 @@ Requirements:
         svgText = data.content[0].text;
       }
     } catch (e) {
-      console.error('Claude fallback failed, trying Groq:', e);
-    }
-  }
-
-  // 2. Fall back to Groq (Llama 3) if Claude is not set or failed
-  if (!svgText && groqKey) {
-    try {
-      const groq = new Groq({ apiKey: groqKey });
-      const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-        max_tokens: 3000,
-      });
-      svgText = completion.choices[0]?.message?.content || '';
-    } catch (e) {
-      console.error('Groq fallback failed:', e);
+      console.error('Claude fallback failed:', e);
     }
   }
 
