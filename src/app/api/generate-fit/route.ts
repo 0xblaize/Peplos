@@ -21,16 +21,23 @@ function wait(milliseconds: number): Promise<void> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userImageUrl, garmentImageUrl } = body ?? {};
+    const { userImageUrl, garmentImageUrls, contextPrompt } = body ?? {};
 
-    if (typeof userImageUrl !== 'string' || typeof garmentImageUrl !== 'string') {
+    if (
+      typeof userImageUrl !== 'string' ||
+      !Array.isArray(garmentImageUrls) ||
+      garmentImageUrls.length < 1 ||
+      garmentImageUrls.some((url: unknown) => typeof url !== 'string' || url.trim().length === 0)
+    ) {
       return NextResponse.json(
-        { error: 'userImageUrl and garmentImageUrl are required.' },
+        { error: 'userImageUrl and at least one garmentImageUrls entry are required.' },
         { status: 400 },
       );
     }
 
     // Inject the Fashn.ai or Replicate API key and external VTO request here.
+    // The real request should receive userImageUrl, garmentImageUrls, and contextPrompt.
+    void contextPrompt;
     await wait(3000);
 
     return NextResponse.json({

@@ -1,85 +1,40 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Download, ImagePlus, LoaderCircle, RefreshCcw, ScanFace, Shirt, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Heart, LoaderCircle, RefreshCcw, ScanFace, Share2, Sparkles } from 'lucide-react';
 
-function readImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-    reader.onerror = () => reject(new Error('Unable to read image.'));
-    reader.readAsDataURL(file);
-  });
-}
+export default function LookbookStage({ basePhotoUrl, selectedGarments, generatedResult, isGenerating, loadingPhrase, error, favorite, onReroll, onToggleFavorite }) {
+  const [shared, setShared] = useState(false);
 
-function UploadCard({ eyebrow, label, imageUrl, onSelect, icon: Icon }) {
-  const inputRef = useRef(null);
-
-  async function handleChange(event) {
-    const file = event.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    onSelect(await readImage(file));
-    event.target.value = '';
-  }
-
-  return (
-    <button type="button" onClick={() => inputRef.current?.click()} className="group relative flex min-h-40 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] text-left transition hover:border-peplos-pink/70 hover:bg-white/[0.1]">
-      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleChange} className="hidden" />
-      {imageUrl ? <img src={imageUrl} alt={label} className="absolute inset-0 h-full w-full object-cover opacity-85 transition duration-500 group-hover:scale-105" /> : <div className="m-auto flex flex-col items-center px-3 text-center"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70"><Icon size={18} strokeWidth={1.5} /></span><span className="mt-3 text-xs font-semibold text-white">{label}</span><span className="mt-1 text-[10px] text-white/35">Tap to upload</span></div>}
-      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-8"><span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-peplos-pink">{eyebrow}</span><span className="mt-1 block truncate text-xs font-semibold text-white">{imageUrl ? `Change ${label}` : label}</span></span>
-    </button>
-  );
-}
-
-export default function LookbookStage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [userImage, setUserImage] = useState('');
-  const [selectedGarment, setSelectedGarment] = useState('');
-  const [generatedResult, setGeneratedResult] = useState(null);
-  const [error, setError] = useState('');
-
-  async function generateFit() {
-    if (!userImage || !selectedGarment || isLoading) return;
-    setError('');
-    setGeneratedResult(null);
-    setIsLoading(true);
+  async function shareResult() {
+    if (!generatedResult) return;
     try {
-      const response = await fetch('/api/generate-fit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userImageUrl: userImage, garmentImageUrl: selectedGarment }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? 'Generation failed.');
-      setGeneratedResult(data.resultImageUrl);
-    } catch (generationError) {
-      setError(generationError instanceof Error ? generationError.message : 'Generation failed.');
-    } finally {
-      setIsLoading(false);
+      if (navigator.share) await navigator.share({ title: 'My Peplos look', text: 'My latest Peplos virtual try-on.', url: generatedResult });
+      else await navigator.clipboard.writeText(generatedResult);
+      setShared(true);
+      window.setTimeout(() => setShared(false), 1800);
+    } catch {
+      setShared(false);
     }
   }
 
-  function reset() {
-    setGeneratedResult(null);
-    setError('');
-  }
-
   return (
-    <section className="overflow-hidden rounded-4xl bg-peplos-night text-white shadow-soft">
-      <div className="border-b border-white/10 px-5 py-5 sm:px-7 sm:py-6">
-        <div className="flex items-start justify-between gap-4">
-          <div><p className="dashboard-eyebrow text-peplos-pink">03 / Virtual fitting room</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.05em] sm:text-3xl">The lookbook stage.</h2></div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-peplos-pink"><Sparkles size={16} /></span>
-        </div>
-        <div className="mt-5 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-white/35"><span className="flex items-center gap-1.5 text-white/80"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-peplos-pink text-[9px] text-peplos-ink">1</span> Add photos</span><span className="h-px flex-1 bg-white/10" /><span className="flex items-center gap-1.5"><span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/15">2</span> Generate</span><span className="h-px flex-1 bg-white/10" /><span className="flex items-center gap-1.5"><span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/15">3</span> Step out</span></div>
-      </div>
+    <section className="flex min-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-4xl bg-peplos-night text-white shadow-soft lg:min-h-[calc(100vh-2rem)]">
+      <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-5 sm:px-7 sm:py-6"><div><p className="dashboard-eyebrow text-peplos-pink">Lookbook stage</p><h2 className="mt-2 font-['Anton'] text-4xl uppercase leading-[0.9] tracking-[-0.02em] sm:text-5xl">The reveal.</h2></div><span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-peplos-pink"><Sparkles size={17} /></span></div>
 
-      <div className="p-5 sm:p-7">
-        <div className="relative flex min-h-[390px] items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-[#201d1e] p-4 sm:min-h-[470px] sm:p-6">
-          <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-peplos-pink/15 blur-3xl" /><div className="pointer-events-none absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-peplos-blue/10 blur-3xl" />
-          {generatedResult ? <div className="relative z-10 w-full max-w-sm"><img src={generatedResult} alt="AI-generated virtual try-on result" className="max-h-[520px] w-full rounded-2xl object-cover shadow-[0_24px_80px_rgba(0,0,0,0.45)]" /><div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40">Your generated edit</span><div className="flex gap-2"><button type="button" onClick={reset} className="rounded-full border border-white/15 p-2 text-white/60 transition hover:border-white/40 hover:text-white" aria-label="Create another look"><RefreshCcw size={14} /></button><a href={generatedResult} download="peplos-fit.svg" className="rounded-full border border-white/15 p-2 text-white/60 transition hover:border-white/40 hover:text-white" aria-label="Download generated look"><Download size={14} /></a></div></div></div> : isLoading ? <div className="relative z-10 flex flex-col items-center text-center"><div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-peplos-pink/40 bg-peplos-pink/10 shadow-[0_0_80px_rgba(232,130,180,0.25)]"><div className="absolute inset-3 animate-pulse rounded-full border border-peplos-pink/50" /><LoaderCircle className="animate-spin text-peplos-pink" size={27} strokeWidth={1.5} /></div><p className="mt-7 text-base font-medium tracking-[-0.02em]">AI is tailoring your outfit...</p><p className="mt-2 text-[9px] uppercase tracking-[0.22em] text-white/35">Constructing your lookbook</p></div> : <div className="relative z-10 max-w-[240px] text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/60"><ScanFace size={24} strokeWidth={1.3} /></div><p className="mt-6 text-xl font-medium tracking-[-0.04em]">Ready when you are.</p><p className="mt-3 text-xs leading-5 text-white/40">Your high-resolution try-on preview will appear here.</p></div>}
+      <div className="flex flex-1 flex-col p-4 sm:p-6">
+        <div className={`relative flex min-h-[58vh] flex-1 items-center justify-center overflow-hidden rounded-3xl border p-4 transition ${isGenerating ? 'border-peplos-pink/70 shadow-[0_0_80px_rgba(232,130,180,0.16)]' : 'border-white/10'} bg-[#201d1e]`}>
+          <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-peplos-pink/15 blur-3xl" /><div className="pointer-events-none absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-peplos-blue/10 blur-3xl" />
+          {generatedResult ? (
+            <div className="relative z-10 flex h-full w-full flex-col items-center justify-center"><img src={generatedResult} alt="AI-generated lookbook result" className="max-h-[68vh] w-full max-w-2xl rounded-2xl object-contain shadow-[0_28px_100px_rgba(0,0,0,0.5)]" /><div className="mt-4 flex w-full max-w-2xl items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Editorial preview / 01</span><div className="flex items-center gap-2"><button type="button" onClick={onToggleFavorite} className={`rounded-full border p-2.5 transition ${favorite ? 'border-peplos-pink bg-peplos-pink/15 text-peplos-pink' : 'border-white/15 text-white/65 hover:border-peplos-pink hover:text-peplos-pink'}`} aria-label="Favorite look"><Heart size={15} fill={favorite ? 'currentColor' : 'none'} /></button><button type="button" onClick={shareResult} className="rounded-full border border-white/15 p-2.5 text-white/65 transition hover:border-white/40 hover:text-white" aria-label="Share look"><Share2 size={15} /></button><a href={generatedResult} download="peplos-lookbook.svg" className="rounded-full border border-white/15 p-2.5 text-white/65 transition hover:border-white/40 hover:text-white" aria-label="Download look"><Download size={15} /></a><button type="button" onClick={onReroll} className="flex items-center gap-1.5 rounded-full border border-peplos-pink/40 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.13em] text-peplos-pink transition hover:bg-peplos-pink hover:text-peplos-ink"><RefreshCcw size={13} /> Reroll</button></div></div><p className="mt-2 h-4 text-right text-[10px] text-peplos-lime">{shared ? 'Link copied to clipboard' : ''}</p></div>
+          ) : isGenerating ? (
+            <div className="relative z-10 flex flex-col items-center text-center"><div className="relative flex h-28 w-28 items-center justify-center rounded-full border border-peplos-pink/50 bg-peplos-pink/10 shadow-[0_0_100px_rgba(232,130,180,0.28)]"><div className="absolute inset-3 animate-pulse rounded-full border border-peplos-pink/60" /><LoaderCircle className="animate-spin text-peplos-pink" size={30} strokeWidth={1.4} /></div><p className="mt-8 text-lg font-medium tracking-[-0.03em]">{loadingPhrase}</p><p className="mt-2 text-[10px] uppercase tracking-[0.24em] text-white/35">Peplos fitting engine / live render</p></div>
+          ) : (
+            <div className="relative z-10 max-w-sm text-center"><div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]"><div className="absolute inset-3 rounded-full border border-dashed border-white/15" /><ScanFace size={30} strokeWidth={1.2} className="text-white/55" /></div><p className="mt-8 text-2xl font-medium tracking-[-0.05em]">Select garments to generate today&apos;s lookbook.</p><p className="mt-3 text-sm leading-6 text-white/40">Choose a base model and a clean piece from the utility zone. The final editorial image will live here.</p></div>
+          )}
         </div>
-
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row"><UploadCard eyebrow="01 / You" label="Your photo" imageUrl={userImage} onSelect={setUserImage} icon={ScanFace} /><UploadCard eyebrow="02 / Garment" label="Today&apos;s garment" imageUrl={selectedGarment} onSelect={setSelectedGarment} icon={Shirt} /></div>
-        <button type="button" onClick={generateFit} disabled={!userImage || !selectedGarment || isLoading} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-peplos-pink px-5 py-4 text-xs font-bold uppercase tracking-[0.16em] text-peplos-ink transition hover:bg-[#f09bc3] disabled:cursor-not-allowed disabled:opacity-30"><Sparkles size={16} />{isLoading ? 'Generating your fit' : "Generate today's fit"}</button>
-        {error && <p className="mt-3 text-center text-xs text-red-300">{error}</p>}
-        {!userImage || !selectedGarment ? <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[10px] text-white/30"><ImagePlus size={12} /> Add both images to unlock the stage.</p> : null}
+        {error && <p className="mt-3 rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-2 text-xs text-red-200">{error}</p>}
+        <div className="mt-4 flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2">{basePhotoUrl && <img src={basePhotoUrl} alt="Base model" className="h-8 w-7 rounded-md object-cover ring-1 ring-white/15" />}<div className="min-w-0"> <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">Inputs in frame</p><p className="truncate text-xs text-white/75">{selectedGarments.length ? selectedGarments.map((item) => item.name).join(' + ') : 'Waiting for your edit'}</p></div></div><span className="shrink-0 text-[9px] uppercase tracking-[0.16em] text-white/30">One look at a time</span></div>
       </div>
     </section>
   );

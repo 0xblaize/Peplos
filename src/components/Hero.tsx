@@ -37,6 +37,7 @@ type Role = 'center' | 'left' | 'right' | 'back' | 'hidden';
 
 const TRANSITION =
   'transform 650ms cubic-bezier(0.4,0,0.2,1), filter 650ms cubic-bezier(0.4,0,0.2,1), opacity 650ms cubic-bezier(0.4,0,0.2,1), left 650ms cubic-bezier(0.4,0,0.2,1), height 650ms cubic-bezier(0.4,0,0.2,1), bottom 650ms cubic-bezier(0.4,0,0.2,1)';
+const AUTO_ADVANCE_MS = 20_000;
 
 function getRoleStyle(role: Role, isMobile: boolean): React.CSSProperties {
   switch (role) {
@@ -104,6 +105,20 @@ export default function Hero() {
     const onResize = () => setIsMobile(window.innerWidth < 640);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    const autoAdvance = window.setInterval(() => {
+      setIsAnimating((animating) => {
+        if (animating) return animating;
+
+        setActiveIndex((prev) => (prev + 1) % OUTFITS.length);
+        window.setTimeout(() => setIsAnimating(false), 650);
+        return true;
+      });
+    }, AUTO_ADVANCE_MS);
+
+    return () => window.clearInterval(autoAdvance);
   }, []);
 
   useEffect(() => {

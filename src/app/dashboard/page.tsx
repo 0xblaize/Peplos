@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowUpRight, CalendarDays, ChevronRight, CircleHelp, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ChevronRight, Sparkles } from 'lucide-react';
 import type { ClosetItem } from '@/lib/supabase';
+import type { WeatherSnapshot } from '@/lib/weather';
+import type { CalendarEvent } from '@/lib/schedule';
 import { getCloset, isClosetPersisted, setInLaundry, deleteClosetItem } from '@/lib/closet';
 import AuthButton from '@/components/AuthButton';
 import Sandbox from '@/components/dashboard/Sandbox';
@@ -11,12 +13,32 @@ import EditItemDrawer from '@/components/dashboard/EditItemDrawer';
 import CalendarSyncModal from '@/components/dashboard/CalendarSyncModal';
 import type { ClosetFilter } from '@/components/dashboard/FilterPills';
 
+interface ContextResponse {
+  weather: WeatherSnapshot;
+  schedule: CalendarEvent[];
+  source: 'google' | 'none';
+}
+
+const LOADING_PHRASES = [
+  'Analyzing weather constraints…',
+  'Synthesizing fabric physics…',
+  'Rendering editorial lighting…',
+];
+
 export default function DashboardPage() {
   const persisted = isClosetPersisted();
   const [closet, setCloset] = useState<ClosetItem[]>([]);
   const [filter, setFilter] = useState<ClosetFilter>('all');
+  const [selectedGarments, setSelectedGarments] = useState<ClosetItem[]>([]);
+  const [basePhotoUrl, setBasePhotoUrl] = useState('');
+  const [context, setContext] = useState<ContextResponse | null>(null);
   const [selectedItem, setSelectedItem] = useState<ClosetItem | null>(null);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [generatedResult, setGeneratedResult] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+  const [generationError, setGenerationError] = useState('');
+  const [favorite, setFavorite] = useState(false);
 
   const refreshCloset = useCallback(() => {
     getCloset().then(setCloset);
@@ -24,82 +46,87 @@ export default function DashboardPage() {
 
   useEffect(refreshCloset, [refreshCloset]);
 
+  useEffect(() => {
+    fetch('/api/context?city=New%20York')
+      .then((response) => response.json())
+      .then((data: ContextResponse) => setContext(data))
+      .catch(() => setContext(null));
+  }, []);
+
+  useEffect(() => {
+    if (!isGenerating) return undefined;
+    const timer = window.setInterval(() => setLoadingPhraseIndex((index) => (index + 1) % LOADING_PHRASES.length), 1800);
+    return () => window.clearInterval(timer);
+  }, [isGenerating]);
+
+  function handleSelectGarment(item: ClosetItem) {
+    if (item.in_laundry || !item.image_url) return;
+    setSelectedGarments((current) => {
+      if (current.some((selected) => selected.id === item.id)) return current.filter((selected) => selected.id !== item.id);
+      if (current.length === 0) return [item];
+      const canPair = current.length === 1 && ((current[0].category === 'top' && item.category === 'bottom') || (current[0].category === 'bottom' && item.category === 'top'));
+      return canPair ? [...current, item] : [item];
+    });
+    setGeneratedResult(null);
+    setFavorite(false);
+  }
+
+  function removeGarment(item: ClosetItem) {
+    setSelectedGarments((current) => current.filter((selected) => selected.id !== item.id));
+  }
+
+  async function generateLook() {
+    if (!basePhotoUrl || selectedGarments.length === 0 || selectedGarments.some((item) => !item.image_url) || isGenerating) return;
+    setIsGenerating(true);
+    setGenerationError('');
+    setGeneratedResult(null);
+    setFavorite(false);
+    try {
+      const nextEvent = context?.schedule[0];
+      const contextPrompt = [
+        context?.weather ? `${Math.round((context.weather.tempC * 9) / 5 + 32)}°F ${context.weather.condition}` : '',
+        nextEvent ? `for ${nextEvent.title} at ${nextEvent.time}` : '',
+      ].filter(Boolean).join(', ');
+      const response = await fetch('/api/generate-fit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userImageUrl: basePhotoUrl, garmentImageUrls: selectedGarments.map((item) => item.image_url), contextPrompt }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? 'Unable to generate this look.');
+      setGeneratedResult(data.resultImageUrl);
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : 'Unable to generate this look.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   function handleToggleDirty(item: ClosetItem) {
     setInLaundry(item.id, !item.in_laundry).then(refreshCloset);
   }
 
   function handleDelete(id: string) {
+    setSelectedGarments((current) => current.filter((item) => item.id !== id));
     deleteClosetItem(id).then(refreshCloset);
   }
-
-  const cleanCount = closet.filter((item) => !item.in_laundry).length;
 
   return (
     <div className="min-h-screen bg-peplos-bg">
       <header className="relative z-20 bg-peplos-night text-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-5 py-4 sm:px-8 lg:px-12">
-          <a href="/" className="flex items-center gap-3">
-            <span className="font-['Anton'] text-xl tracking-[0.08em]">PEPLOS</span>
-            <span className="hidden h-4 w-px bg-white/20 sm:block" />
-            <span className="hidden text-[10px] font-semibold uppercase tracking-[0.25em] text-white/45 sm:block">Personal wardrobe OS</span>
-          </a>
-          <div className="flex items-center gap-3 sm:gap-6">
-            <div className="hidden items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45 lg:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-peplos-lime" />
-              {persisted ? 'Closet synced' : 'Demo workspace'}
-            </div>
-            <AuthButton />
-          </div>
-        </div>
-        <div className="h-px bg-white/10" />
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-5 py-3 sm:px-8 lg:px-12">
-          <div className="flex items-center gap-2 text-xs text-white/45">
-            <span>Workspace</span><ChevronRight size={13} /><span className="text-white/85">Today&apos;s edit</span>
-          </div>
-          <a href="#closet" className="hidden items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/55 transition hover:text-white sm:flex">
-            Browse closet <ArrowUpRight size={13} />
-          </a>
-        </div>
+        <div className="mx-auto flex max-w-[1800px] items-center justify-between px-5 py-4 sm:px-8 lg:px-10"><a href="/" className="flex items-center gap-3"><span className="font-['Anton'] text-xl tracking-[0.08em]">PEPLOS</span><span className="hidden h-4 w-px bg-white/20 sm:block" /><span className="hidden text-[10px] font-semibold uppercase tracking-[0.25em] text-white/45 sm:block">Generative wardrobe studio</span></a><div className="flex items-center gap-3 sm:gap-6"><span className="hidden items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45 lg:flex"><span className="h-1.5 w-1.5 rounded-full bg-peplos-lime" />{persisted ? 'Closet synced' : 'Demo workspace'}</span><AuthButton /></div></div>
+        <div className="h-px bg-white/10" /><div className="mx-auto flex max-w-[1800px] items-center justify-between px-5 py-3 sm:px-8 lg:px-10"><div className="flex items-center gap-2 text-xs text-white/45"><span>Workspace</span><ChevronRight size={13} /><span className="text-white/85">Lookbook studio</span></div><a href="#closet" className="hidden items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/55 transition hover:text-white sm:flex">Browse utility zone <ArrowUpRight size={13} /></a></div>
       </header>
 
-      <main className="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
-        <div className="mb-4 flex items-center justify-between px-1 lg:mb-6">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-peplos-muted">
-            <Sparkles size={13} className="text-peplos-pink" /> The daily edit
-          </div>
-          <button type="button" onClick={() => setCalendarModalOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-peplos-line bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-peplos-muted transition hover:border-peplos-ink hover:text-peplos-ink">
-            <CalendarDays size={13} /> Calendar settings
-          </button>
-        </div>
-
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.72fr)] lg:gap-6">
-          <section id="closet" className="min-w-0 rounded-4xl border border-peplos-line bg-[#f4efec] p-4 shadow-soft sm:p-6 lg:p-8">
-            <Sandbox
-              closet={closet}
-              persisted={persisted}
-              filter={filter}
-              onFilterChange={setFilter}
-              onAdded={refreshCloset}
-              onOpenItem={setSelectedItem}
-              onWearNow={() => undefined}
-              onToggleDirty={handleToggleDirty}
-              onDelete={handleDelete}
-              onOpenCalendarModal={() => setCalendarModalOpen(true)}
-            />
-          </section>
-
-          <aside className="min-w-0 lg:sticky lg:top-4">
-            <LookbookStage />
-            <div className="mt-3 flex items-center justify-between px-2 text-[10px] uppercase tracking-[0.18em] text-peplos-muted">
-              <span>{cleanCount} clean pieces available</span>
-              <span className="inline-flex items-center gap-1"><CircleHelp size={12} /> VTO preview</span>
-            </div>
-          </aside>
+      <main className="mx-auto max-w-[1800px] px-3 py-3 sm:px-5 sm:py-5 lg:px-7">
+        <div className="mb-4 flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[0.28em] text-peplos-muted"><Sparkles size={13} className="text-peplos-pink" /> The daily lookbook</div>
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(360px,35%)_minmax(0,65%)] lg:gap-5">
+          <section id="closet" className="dashboard-scroll min-h-0 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1"><Sandbox closet={closet} persisted={persisted} filter={filter} selectedGarments={selectedGarments} basePhotoUrl={basePhotoUrl} weather={context?.weather ?? null} nextEvent={context?.schedule[0]} contextSource={context?.source ?? null} isGenerating={isGenerating} onFilterChange={setFilter} onAdded={refreshCloset} onSelectGarment={handleSelectGarment} onOpenItem={setSelectedItem} onToggleDirty={handleToggleDirty} onDelete={handleDelete} onBasePhotoChange={setBasePhotoUrl} onGenerate={generateLook} onRemoveGarment={removeGarment} onOpenCalendarModal={() => setCalendarModalOpen(true)} /></section>
+          <aside className="min-w-0 lg:sticky lg:top-3"><LookbookStage basePhotoUrl={basePhotoUrl} selectedGarments={selectedGarments} generatedResult={generatedResult} isGenerating={isGenerating} loadingPhrase={LOADING_PHRASES[loadingPhraseIndex]} error={generationError} favorite={favorite} onReroll={generateLook} onToggleFavorite={() => setFavorite((current) => !current)} /></aside>
         </div>
       </main>
 
-      <EditItemDrawer item={selectedItem} disabled={!persisted} onClose={() => setSelectedItem(null)} onSaved={refreshCloset} />
-      <CalendarSyncModal open={calendarModalOpen} onClose={() => setCalendarModalOpen(false)} />
+      <EditItemDrawer item={selectedItem} disabled={!persisted} onClose={() => setSelectedItem(null)} onSaved={refreshCloset} /><CalendarSyncModal open={calendarModalOpen} onClose={() => setCalendarModalOpen(false)} />
     </div>
   );
 }
