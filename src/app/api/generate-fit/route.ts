@@ -153,15 +153,14 @@ export async function POST(request: NextRequest) {
       categoryKey = 'dresses';
     }
 
-    // Trigger prediction via Replicate
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    // Trigger prediction via Replicate by model name (uses latest version automatically)
+    const response = await fetch('https://api.replicate.com/v1/models/cuuupid/idm-vton/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${replicateToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        version: '0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985',
         input: {
           human_img: publicUserImageUrl,
           garm_img: publicGarmentUrl,
@@ -207,19 +206,11 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (err) {
-    console.warn('Replicate pipeline failed. Falling back to Claude/Groq SVG generator:', err);
-    try {
-      const fallbackUrl = await generateFallbackSVG(targetGarment, contextText);
-      return NextResponse.json({
-        resultImageUrl: fallbackUrl,
-        mock: true,
-      });
-    } catch (fallbackErr) {
-      return NextResponse.json(
-        { error: 'Both try-on engine and fallback generator failed.' },
-        { status: 500 },
-      );
-    }
+    console.error('Replicate try-on failed:', err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Unable to complete virtual try-on.' },
+      { status: 500 },
+    );
   }
 }
 
