@@ -194,13 +194,30 @@ export default function Hero() {
           YOUR FIT
         </div>
 
-        {/* Brand label */}
-        <div
+        {/* Brand label — h1 for SEO/OAuth verification */}
+        <h1
           className="absolute top-6 left-4 sm:left-8 text-xs font-semibold uppercase"
-          style={{ zIndex: 60, color: '#fff', opacity: 0.9, letterSpacing: '0.18em' }}
+          style={{ zIndex: 60, color: '#fff', opacity: 0.9, letterSpacing: '0.18em', margin: 0 }}
         >
-          PEPLOS
-        </div>
+          Peplos
+        </h1>
+        {/* Visually hidden but crawler-readable app description */}
+        <p
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: 0,
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0,0,0,0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+            zIndex: 0,
+          }}
+        >
+          Peplos is a generative AI wardrobe studio that cross-references your calendar, the weather, and your closet to recommend the perfect outfit for your day.
+        </p>
 
         <div
           className="absolute top-5 right-4 sm:top-6 sm:right-8 rounded-full px-3 py-2"
