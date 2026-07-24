@@ -6,6 +6,19 @@ export const metadata: Metadata = {
   title: 'Peplos — Your outfit, decided for you',
   description:
     'Peplos cross-references your calendar, the weather, and your closet to dress your 3D avatar in the optimal outfit from your clean clothes.',
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-touch-icon.png',
+    shortcut: '/icon.png',
+  },
+  openGraph: {
+    title: 'Peplos — Your outfit, decided for you',
+    description: 'Generative wardrobe studio. Your fit, decided.',
+    images: [{ url: '/icon.png', width: 512, height: 512, alt: 'Peplos' }],
+  },
+  verification: {
+    google: 'QSRgs5KtDyqMMWFoLRg0afCU2H2_OWtNt-P7fXGfL9o',
+  },
 };
 
 export default function RootLayout({
