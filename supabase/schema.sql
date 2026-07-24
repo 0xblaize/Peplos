@@ -50,3 +50,12 @@ on conflict (id) do nothing;
 
 create policy "public read garments" on storage.objects
   for select using (bucket_id = 'garments');
+
+create policy "public insert garments" on storage.objects
+  for insert with check (bucket_id = 'garments');
+
+create policy "public update garments" on storage.objects
+  for update using (bucket_id = 'garments');
+
+create policy "public delete garments" on storage.objects
+  for delete using (bucket_id = 'garments');

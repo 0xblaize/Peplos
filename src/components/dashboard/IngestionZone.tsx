@@ -102,9 +102,10 @@ export default function IngestionZone({ disabled, onAdded }: IngestionZoneProps)
       if (supabase && file) {
         const path = `uploads/${Date.now()}-${slugify(file.name)}`;
         const { error: uploadError } = await supabase.storage.from('garments').upload(path, file);
-        if (!uploadError) {
-          image_url = supabase.storage.from('garments').getPublicUrl(path).data.publicUrl;
+        if (uploadError) {
+          throw new Error(`Upload failed: ${uploadError.message}`);
         }
+        image_url = supabase.storage.from('garments').getPublicUrl(path).data.publicUrl;
       }
 
       await addClosetItem({
