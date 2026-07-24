@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import Groq from 'groq-sdk';
 
 interface GarmentInput {
   name: string;
@@ -44,6 +45,7 @@ async function uploadBase64ToSupabase(base64DataUrl: string, prefix: string): Pr
 
 async function generateFallbackSVG(targetGarment: GarmentInput, contextText: string): Promise<string> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
   
   const garmentColor = targetGarment.color || '#E882B4';
   const prompt = `You are a premium vector graphic designer. 
@@ -84,7 +86,23 @@ Requirements:
         svgText = data.content[0].text;
       }
     } catch (e) {
-      console.error('Claude fallback failed:', e);
+      console.error('Claude fallback failed, trying Groq:', e);
+    }
+  }
+
+  // Fall back to Groq (Llama 3) if Claude is not set or failed
+  if (!svgText && groqKey) {
+    try {
+      const groq = new Groq({ apiKey: groqKey });
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2,
+        max_tokens: 3000,
+      });
+      svgText = completion.choices[0]?.message?.content || '';
+    } catch (e) {
+      console.error('Groq fallback failed:', e);
     }
   }
 
@@ -109,136 +127,34 @@ Requirements:
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { userImageUrl, garments, contextPrompt } = body ?? {};
-  const contextText = contextPrompt || 'Optimal Try-On Fit';
-
-  let garmentList: GarmentInput[] = garments || [];
-  if (garmentList.length < 1) {
-    return NextResponse.json(
-      { error: 'At least one garment is required to generate a try-on look.' },
-      { status: 400 },
-    );
-  }
-
-  const targetGarment = garmentList[0];
-
-  // 1. Try Claude first as the primary try-on source
   try {
-    const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
-    if (!anthropicKey) {
-      throw new Error('Claude API key is missing. Falling back to Replicate.');
-    }
-    const fallbackUrl = await generateFallbackSVG(targetGarment, contextText);
-    if (!fallbackUrl || fallbackUrl.includes('PEPLOS%20LOOKBOOK')) {
-      throw new Error('Claude SVG generation returned default SVG. Falling back to Replicate.');
-    }
-    return NextResponse.json({
-      resultImageUrl: fallbackUrl,
-      mock: true,
-    });
-  } catch (claudeError) {
-    console.warn('Claude try-on failed, falling back to Replicate:', claudeError);
+    const body = await request.json();
+    const { garments, contextPrompt } = body ?? {};
+    const contextText = contextPrompt || 'Optimal Try-On Fit';
 
-    // 2. Fall back to Replicate as the secondary source
-    try {
-      const replicateToken = process.env.REPLICATE_API_TOKEN;
-      if (!replicateToken) {
-        throw new Error('REPLICATE_API_TOKEN is missing. Both try-on options failed.');
-      }
-
-      // Convert userImageUrl to a public URL if it is a base64 string
-      let publicUserImageUrl = userImageUrl;
-      if (userImageUrl.startsWith('data:')) {
-        const uploadedUrl = await uploadBase64ToSupabase(userImageUrl, 'base-photo');
-        if (uploadedUrl) publicUserImageUrl = uploadedUrl;
-        else throw new Error('Base photo conversion failed.');
-      }
-
-      // Convert garment image to a public URL if it is a base64 string
-      let publicGarmentUrl = targetGarment.imageUrl;
-      if (publicGarmentUrl.startsWith('data:')) {
-        const uploadedUrl = await uploadBase64ToSupabase(publicGarmentUrl, 'garment');
-        if (uploadedUrl) publicGarmentUrl = uploadedUrl;
-        else throw new Error('Garment photo conversion failed.');
-      }
-
-      let categoryKey = 'upper_body';
-      if (targetGarment.category === 'bottom') {
-        categoryKey = 'lower_body';
-      } else if (targetGarment.category === 'full outfit') {
-        categoryKey = 'dresses';
-      }
-
-      // Trigger prediction via Replicate
-      const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${replicateToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          version: '0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985',
-          input: {
-            human_img: publicUserImageUrl,
-            garm_img: publicGarmentUrl,
-            garment_des: targetGarment.name || 'garment item',
-            category: categoryKey,
-            steps: 30,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Replicate API returned status ${response.status}: ${
-            errorData.detail || errorData.error || JSON.stringify(errorData) || 'Unknown error'
-          }`
-        );
-      }
-
-      const prediction = await response.json();
-      if (prediction.error || !prediction.urls) {
-        throw new Error(prediction.error || 'Start prediction failed.');
-      }
-
-      let status = prediction.status;
-      let resultUrl = '';
-      const pollUrl = prediction.urls.get;
-
-      while (status !== 'succeeded' && status !== 'failed' && status !== 'canceled') {
-        await wait(2000);
-        const pollRes = await fetch(pollUrl, {
-          headers: {
-            'Authorization': `Token ${replicateToken}`,
-          },
-        });
-        const pollData = await pollRes.json();
-        status = pollData.status;
-        if (status === 'succeeded') {
-          resultUrl = Array.isArray(pollData.output) ? pollData.output[0] : pollData.output;
-          break;
-        }
-        if (status === 'failed' || status === 'canceled') {
-          throw new Error(pollData.error || 'AI generation failed.');
-        }
-      }
-
-      if (!resultUrl) throw new Error('No output URL from Replicate.');
-
-      return NextResponse.json({
-        resultImageUrl: resultUrl,
-        mock: false,
-      });
-
-    } catch (replicateError) {
-      console.error('Both try-on options failed:', replicateError);
+    let garmentList: GarmentInput[] = garments || [];
+    if (garmentList.length < 1) {
       return NextResponse.json(
-        { error: replicateError instanceof Error ? replicateError.message : 'Unable to complete virtual try-on.' },
-        { status: 500 },
+        { error: 'At least one garment is required to generate a try-on look.' },
+        { status: 400 },
       );
     }
+
+    const targetGarment = garmentList[0];
+
+    // Generate the SVG try-on graphic using Claude (or Groq)
+    const resultUrl = await generateFallbackSVG(targetGarment, contextText);
+
+    return NextResponse.json({
+      resultImageUrl: resultUrl,
+      mock: true,
+    });
+  } catch (err) {
+    console.error('AI try-on generation failed:', err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Unable to complete virtual try-on.' },
+      { status: 500 },
+    );
   }
 }
 
