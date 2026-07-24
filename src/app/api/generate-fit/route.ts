@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const PLACEHOLDER_SVG = `
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1100">
@@ -14,11 +14,11 @@ const PLACEHOLDER_SVG = `
   </svg>
 `;
 
-function wait(milliseconds) {
+function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { userImageUrl, garmentImageUrl } = body ?? {};
