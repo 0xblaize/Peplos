@@ -123,94 +123,121 @@ export async function POST(request: NextRequest) {
 
   const targetGarment = garmentList[0];
 
+  // 1. Try Claude first as the primary try-on source
   try {
-    // Get Replicate token
-    const replicateToken = process.env.REPLICATE_API_TOKEN;
-    if (!replicateToken) {
-      throw new Error('REPLICATE_API_TOKEN missing. Triggering AI graphics fallback.');
+    const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+    if (!anthropicKey) {
+      throw new Error('Claude API key is missing. Falling back to Replicate.');
     }
-
-    // Convert userImageUrl to a public URL if it is a base64 string
-    let publicUserImageUrl = userImageUrl;
-    if (userImageUrl.startsWith('data:')) {
-      const uploadedUrl = await uploadBase64ToSupabase(userImageUrl, 'base-photo');
-      if (uploadedUrl) publicUserImageUrl = uploadedUrl;
-      else throw new Error('Base photo conversion failed.');
+    const fallbackUrl = await generateFallbackSVG(targetGarment, contextText);
+    if (!fallbackUrl || fallbackUrl.includes('PEPLOS%20LOOKBOOK')) {
+      throw new Error('Claude SVG generation returned default SVG. Falling back to Replicate.');
     }
-
-    // Convert garment image to a public URL if it is a base64 string
-    let publicGarmentUrl = targetGarment.imageUrl;
-    if (publicGarmentUrl.startsWith('data:')) {
-      const uploadedUrl = await uploadBase64ToSupabase(publicGarmentUrl, 'garment');
-      if (uploadedUrl) publicGarmentUrl = uploadedUrl;
-      else throw new Error('Garment photo conversion failed.');
-    }
-
-    let categoryKey = 'upper_body';
-    if (targetGarment.category === 'bottom') {
-      categoryKey = 'lower_body';
-    } else if (targetGarment.category === 'full outfit') {
-      categoryKey = 'dresses';
-    }
-
-    // Trigger prediction via Replicate by model name (uses latest version automatically)
-    const response = await fetch('https://api.replicate.com/v1/models/cuuupid/idm-vton/predictions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${replicateToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        input: {
-          human_img: publicUserImageUrl,
-          garm_img: publicGarmentUrl,
-          garment_des: targetGarment.name || 'garment item',
-          category: categoryKey,
-          steps: 30,
-        },
-      }),
+    return NextResponse.json({
+      resultImageUrl: fallbackUrl,
+      mock: true,
     });
+  } catch (claudeError) {
+    console.warn('Claude try-on failed, falling back to Replicate:', claudeError);
 
-    const prediction = await response.json();
-    if (prediction.error || !prediction.urls) {
-      throw new Error(prediction.error || 'Start prediction failed.');
-    }
+    // 2. Fall back to Replicate as the secondary source
+    try {
+      const replicateToken = process.env.REPLICATE_API_TOKEN;
+      if (!replicateToken) {
+        throw new Error('REPLICATE_API_TOKEN is missing. Both try-on options failed.');
+      }
 
-    let status = prediction.status;
-    let resultUrl = '';
-    const pollUrl = prediction.urls.get;
+      // Convert userImageUrl to a public URL if it is a base64 string
+      let publicUserImageUrl = userImageUrl;
+      if (userImageUrl.startsWith('data:')) {
+        const uploadedUrl = await uploadBase64ToSupabase(userImageUrl, 'base-photo');
+        if (uploadedUrl) publicUserImageUrl = uploadedUrl;
+        else throw new Error('Base photo conversion failed.');
+      }
 
-    while (status !== 'succeeded' && status !== 'failed' && status !== 'canceled') {
-      await wait(2000);
-      const pollRes = await fetch(pollUrl, {
+      // Convert garment image to a public URL if it is a base64 string
+      let publicGarmentUrl = targetGarment.imageUrl;
+      if (publicGarmentUrl.startsWith('data:')) {
+        const uploadedUrl = await uploadBase64ToSupabase(publicGarmentUrl, 'garment');
+        if (uploadedUrl) publicGarmentUrl = uploadedUrl;
+        else throw new Error('Garment photo conversion failed.');
+      }
+
+      let categoryKey = 'upper_body';
+      if (targetGarment.category === 'bottom') {
+        categoryKey = 'lower_body';
+      } else if (targetGarment.category === 'full outfit') {
+        categoryKey = 'dresses';
+      }
+
+      // Trigger prediction via Replicate by model name (uses latest version automatically)
+      const response = await fetch('https://api.replicate.com/v1/models/cuuupid/idm-vton/predictions', {
+        method: 'POST',
         headers: {
           'Authorization': `Token ${replicateToken}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          input: {
+            human_img: publicUserImageUrl,
+            garm_img: publicGarmentUrl,
+            garment_des: targetGarment.name || 'garment item',
+            category: categoryKey,
+            steps: 30,
+          },
+        }),
       });
-      const pollData = await pollRes.json();
-      status = pollData.status;
-      if (status === 'succeeded') {
-        resultUrl = Array.isArray(pollData.output) ? pollData.output[0] : pollData.output;
-        break;
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Replicate API returned status ${response.status}: ${
+            errorData.detail || errorData.error || JSON.stringify(errorData) || 'Unknown error'
+          }`
+        );
       }
-      if (status === 'failed' || status === 'canceled') {
-        throw new Error(pollData.error || 'AI generation failed.');
+
+      const prediction = await response.json();
+      if (prediction.error || !prediction.urls) {
+        throw new Error(prediction.error || 'Start prediction failed.');
       }
+
+      let status = prediction.status;
+      let resultUrl = '';
+      const pollUrl = prediction.urls.get;
+
+      while (status !== 'succeeded' && status !== 'failed' && status !== 'canceled') {
+        await wait(2000);
+        const pollRes = await fetch(pollUrl, {
+          headers: {
+            'Authorization': `Token ${replicateToken}`,
+          },
+        });
+        const pollData = await pollRes.json();
+        status = pollData.status;
+        if (status === 'succeeded') {
+          resultUrl = Array.isArray(pollData.output) ? pollData.output[0] : pollData.output;
+          break;
+        }
+        if (status === 'failed' || status === 'canceled') {
+          throw new Error(pollData.error || 'AI generation failed.');
+        }
+      }
+
+      if (!resultUrl) throw new Error('No output URL from Replicate.');
+
+      return NextResponse.json({
+        resultImageUrl: resultUrl,
+        mock: false,
+      });
+
+    } catch (replicateError) {
+      console.error('Both try-on options failed:', replicateError);
+      return NextResponse.json(
+        { error: replicateError instanceof Error ? replicateError.message : 'Unable to complete virtual try-on.' },
+        { status: 500 },
+      );
     }
-
-    if (!resultUrl) throw new Error('No output URL from Replicate.');
-
-    return NextResponse.json({
-      resultImageUrl: resultUrl,
-      mock: false,
-    });
-
-  } catch (err) {
-    console.error('Replicate try-on failed:', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Unable to complete virtual try-on.' },
-      { status: 500 },
-    );
   }
 }
 
