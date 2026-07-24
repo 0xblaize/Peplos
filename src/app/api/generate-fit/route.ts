@@ -170,14 +170,15 @@ export async function POST(request: NextRequest) {
         categoryKey = 'dresses';
       }
 
-      // Trigger prediction via Replicate by model name (uses latest version automatically)
-      const response = await fetch('https://api.replicate.com/v1/models/cuuupid/idm-vton/predictions', {
+      // Trigger prediction via Replicate
+      const response = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
           'Authorization': `Token ${replicateToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          version: '0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985',
           input: {
             human_img: publicUserImageUrl,
             garm_img: publicGarmentUrl,
