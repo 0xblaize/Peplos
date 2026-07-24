@@ -12,7 +12,7 @@ interface GenerationActionProps {
 }
 
 export default function GenerationAction({ basePhotoUrl, selectedGarments, isGenerating, onRemove, onGenerate }: GenerationActionProps) {
-  const ready = Boolean(basePhotoUrl && selectedGarments.length > 0 && selectedGarments.every((item) => item.image_url));
+  const ready = Boolean(basePhotoUrl && selectedGarments.length > 0);
   const isFullOutfit = selectedGarments.some((item) => item.category === 'full outfit');
   const maxSlots = isFullOutfit ? 1 : 2;
 

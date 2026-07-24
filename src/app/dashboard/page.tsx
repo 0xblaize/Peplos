@@ -47,6 +47,17 @@ export default function DashboardPage() {
   useEffect(refreshCloset, [refreshCloset]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('peplos-base-photo');
+      if (saved) {
+        setBasePhotoUrl(saved);
+      } else {
+        setBasePhotoUrl('https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/1.02464a56.png');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     fetch('/api/context?city=New%20York')
       .then((response) => response.json())
       .then((data: ContextResponse) => setContext(data))
@@ -86,7 +97,7 @@ export default function DashboardPage() {
   }
 
   async function generateLook() {
-    if (!basePhotoUrl || selectedGarments.length === 0 || selectedGarments.some((item) => !item.image_url) || isGenerating) return;
+    if (!basePhotoUrl || selectedGarments.length === 0 || isGenerating) return;
     setIsGenerating(true);
     setGenerationError('');
     setGeneratedResult(null);
@@ -100,7 +111,11 @@ export default function DashboardPage() {
       const response = await fetch('/api/generate-fit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userImageUrl: basePhotoUrl, garmentImageUrls: selectedGarments.map((item) => item.image_url), contextPrompt }),
+        body: JSON.stringify({
+          userImageUrl: basePhotoUrl,
+          garmentImageUrls: selectedGarments.map((item) => item.image_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80'),
+          contextPrompt
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Unable to generate this look.');
