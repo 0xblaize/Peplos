@@ -37,7 +37,7 @@ type Role = 'center' | 'left' | 'right' | 'back' | 'hidden';
 
 const TRANSITION =
   'transform 650ms cubic-bezier(0.4,0,0.2,1), filter 650ms cubic-bezier(0.4,0,0.2,1), opacity 650ms cubic-bezier(0.4,0,0.2,1), left 650ms cubic-bezier(0.4,0,0.2,1), height 650ms cubic-bezier(0.4,0,0.2,1), bottom 650ms cubic-bezier(0.4,0,0.2,1)';
-const AUTO_ADVANCE_MS = 20_000;
+const AUTO_ADVANCE_MS = 5_000;
 
 function getRoleStyle(role: Role, isMobile: boolean): React.CSSProperties {
   switch (role) {
