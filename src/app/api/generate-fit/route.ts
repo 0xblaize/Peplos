@@ -63,7 +63,15 @@ async function runHuggingFaceTryOn(personUrl: string, garment: GarmentInput): Pr
 
     const data = result.data as unknown[];
     const first = data?.[0] as { url?: string; path?: string } | string | undefined;
-    const imageUrl = typeof first === 'string' ? first : first?.url || first?.path;
+    let imageUrl = typeof first === 'string' ? first : first?.url;
+    // The server sometimes only sends back a local disk `path` (e.g.
+    // "/tmp/gradio/xyz/output.webp") with no `url` — that's not fetchable as-is,
+    // so build the real file URL from the connected Space's own root.
+    if (!imageUrl && typeof first === 'object' && first?.path) {
+      const config = (client as unknown as { config?: { root?: string }; api_prefix?: string }).config;
+      const apiPrefix = (client as unknown as { api_prefix?: string }).api_prefix || '';
+      if (config?.root) imageUrl = `${config.root}${apiPrefix}/file=${first.path}`;
+    }
     if (!imageUrl) throw new Error('The free try-on engine returned no image.');
     return imageUrl;
   } catch (error) {
