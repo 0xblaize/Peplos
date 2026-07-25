@@ -43,23 +43,27 @@ async function uploadBase64ToSupabase(base64DataUrl: string, prefix: string): Pr
   }
 }
 
-async function generateFallbackSVG(targetGarment: GarmentInput, contextText: string): Promise<string> {
+async function generateFallbackSVG(garments: GarmentInput[], userImageUrl: string, contextText: string): Promise<string> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
   
-  const garmentColor = targetGarment.color || '#E882B4';
-  const prompt = `You are a premium vector graphic designer. 
-Generate a modern raw SVG code representing a virtual try-on of a person wearing a specific garment.
+  const garmentColor = garments[0]?.color || '#E882B4';
+  const garmentListText = garments
+    .map((garment, index) => `${index + 1}. ${garment.name} (${garment.category}${garment.color ? `, ${garment.color}` : ''})`)
+    .join('; ');
+  const prompt = `You are a premium vector graphic designer.
+Generate a modern raw SVG code representing a virtual try-on of a person wearing one or more selected garments.
 
 Subject description: A stylish minimalist fashion avatar representation of the person.
-Garment description: "${targetGarment.name}" (Category: "${targetGarment.category}", Color: "${garmentColor}").
+User photo: ${userImageUrl || 'no photo provided'}.
+Garments: ${garmentListText}.
 Context: "${contextText}".
 
 Requirements:
 1. Output ONLY the raw SVG code. Start directly with "<svg" and end with "</svg>". Do not put any markdown, backticks, or text explanation.
 2. The SVG viewBox must be "0 0 800 1100".
-3. Render a clean vector human silhouette wearing the garment (rendered in its signature color: ${garmentColor}) matching the category: ${targetGarment.category}. If it's a bottom, color the trousers. If it's a top, color the shirt. If it's a full outfit, color the entire suit/dress.
-4. Use a dark background (#121111) with elegant neon highlights (e.g. pink, blue) and clean styling.
+3. Render a clean vector human silhouette wearing the selected garments. If multiple garments are present, layer them appropriately (top over bottom/full outfit).
+4. Use a dark background (#121111) with elegant neon highlights and clean styling.
 5. Include "PEPLOS VIRTUAL TRY-ON" as header text inside the SVG.
 6. The SVG must be completely self-contained and render beautifully.`;
 
@@ -132,7 +136,7 @@ export async function POST(request: NextRequest) {
     const { garments, contextPrompt } = body ?? {};
     const contextText = contextPrompt || 'Optimal Try-On Fit';
 
-    let garmentList: GarmentInput[] = garments || [];
+    const garmentList: GarmentInput[] = garments || [];
     if (garmentList.length < 1) {
       return NextResponse.json(
         { error: 'At least one garment is required to generate a try-on look.' },
@@ -140,10 +144,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const targetGarment = garmentList[0];
-
     // Generate the SVG try-on graphic using Claude (or Groq)
-    const resultUrl = await generateFallbackSVG(targetGarment, contextText);
+    const resultUrl = await generateFallbackSVG(garmentList, body.userImageUrl || '', contextText);
 
     return NextResponse.json({
       resultImageUrl: resultUrl,
