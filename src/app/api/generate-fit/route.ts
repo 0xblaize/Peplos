@@ -113,6 +113,9 @@ Requirements:
   // Clean markdown wraps from the response if any
   svgText = svgText.replace(/```xml/g, '').replace(/```html/g, '').replace(/```svg/g, '').replace(/```/g, '').trim();
 
+  const firstGarment = garments[0];
+  const firstGarmentLabel = firstGarment ? `${firstGarment.name} (${firstGarment.category})` : 'Selected garment';
+
   // If both failed or output is invalid, return a default styled SVG
   if (!svgText.startsWith('<svg')) {
     svgText = `
@@ -120,9 +123,8 @@ Requirements:
         <rect width="800" height="1100" fill="#121111" />
         <text x="400" y="520" fill="#faf7f5" font-family="sans-serif" font-weight="bold" font-size="28" text-anchor="middle">PEPLOS LOOKBOOK</text>
         <rect x="300" y="580" width="200" height="240" rx="16" fill="${garmentColor}" opacity="0.8" />
-        <text x="400" y="700" fill="#121111" font-family="sans-serif" font-weight="bold" font-size="14" text-anchor="middle">${targetGarment.name.toUpperCase()}</text>
-        <text x="400" y="725" fill="#121111" font-family="sans-serif" font-size="11" text-anchor="middle">${targetGarment.category.toUpperCase()}</text>
-        <text x="400" y="900" fill="rgba(255,255,255,0.4)" font-family="sans-serif" font-size="12" text-anchor="middle">${contextText}</text>
+        <text x="400" y="700" fill="#121111" font-family="sans-serif" font-weight="bold" font-size="14" text-anchor="middle">${firstGarmentLabel.toUpperCase()}</text>
+        <text x="400" y="725" fill="#121111" font-family="sans-serif" font-size="11" text-anchor="middle">${contextText}</text>
       </svg>
     `;
   }
