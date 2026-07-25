@@ -125,6 +125,8 @@ export default function DashboardPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Unable to generate this look.');
       setGeneratedResult(data.resultImageUrl);
+      // If Gemini fell back to the placeholder, tell the user why.
+      if (data.warning) setGenerationError(`Showing a placeholder — ${data.warning}`);
     } catch (error) {
       setGenerationError(error instanceof Error ? error.message : 'Unable to generate this look.');
     } finally {
