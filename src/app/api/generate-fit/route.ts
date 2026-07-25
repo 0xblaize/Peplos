@@ -19,6 +19,12 @@ interface GarmentInput {
 const GEMINI_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
+// Replicate IDM-VTON — real photorealistic virtual try-on with a working free
+// tier (pay-per-second compute, new accounts get free credit). Preferred over
+// Gemini because Gemini's image model requires billing with zero free quota.
+const REPLICATE_TOKEN = process.env.REPLICATE_API_TOKEN;
+const REPLICATE_MODEL = process.env.REPLICATE_VTON_MODEL || 'cuuupid/idm-vton';
+
 interface InlineImage {
   mimeType: string;
   data: string; // base64, no data: prefix
@@ -132,6 +138,77 @@ async function generateWithGemini(
   throw new Error(textNote ? `Gemini returned text, not an image: ${textNote}` : 'Gemini returned no image.');
 }
 
+// ── Replicate IDM-VTON: real photo try-on, garment-by-garment ─────────────────
+
+/** IDM-VTON dresses one garment at a time. Map our categories onto its slots. */
+function replicateCategory(category: string): 'upper_body' | 'lower_body' | 'dresses' {
+  if (category === 'bottom') return 'lower_body';
+  if (category === 'full outfit') return 'dresses';
+  return 'upper_body';
+}
+
+async function runReplicatePrediction(input: Record<string, unknown>): Promise<string> {
+  if (!REPLICATE_TOKEN) throw new Error('REPLICATE_API_TOKEN is not set.');
+
+  const createRes = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${REPLICATE_TOKEN}`,
+      'Content-Type': 'application/json',
+      Prefer: 'wait=50',
+    },
+    body: JSON.stringify({ input }),
+  });
+
+  let prediction = await createRes.json();
+  if (!createRes.ok) {
+    throw new Error(prediction?.detail || `Replicate request failed (${createRes.status}).`);
+  }
+
+  const getUrl: string | undefined = prediction?.urls?.get;
+  const start = Date.now();
+  while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
+    if (Date.now() - start > 55000) throw new Error('Replicate try-on timed out. Please try again.');
+    if (!getUrl) break;
+    await wait(1500);
+    const pollRes = await fetch(getUrl, { headers: { Authorization: `Bearer ${REPLICATE_TOKEN}` } });
+    prediction = await pollRes.json();
+  }
+
+  if (prediction.status !== 'succeeded') {
+    throw new Error(prediction?.error || 'Replicate did not return a result.');
+  }
+
+  const output = prediction.output;
+  const imageUrl = Array.isArray(output) ? output[0] : output;
+  if (typeof imageUrl !== 'string' || !imageUrl) throw new Error('Replicate returned no image.');
+  return imageUrl;
+}
+
+/**
+ * Dresses the person one garment at a time. A single garment is one call;
+ * a top+bottom pair chains two calls, feeding the first result back in as
+ * the "person" for the second so both layers land on the same photo.
+ */
+async function generateWithReplicate(userImageUrl: string, garments: GarmentInput[]): Promise<string> {
+  if (!REPLICATE_TOKEN) throw new Error('REPLICATE_API_TOKEN is not set.');
+  if (!userImageUrl) throw new Error('Could not read the base model photo. Upload a fresh photo and retry.');
+
+  let currentPersonUrl = userImageUrl;
+
+  for (const garment of garments) {
+    if (!garment.imageUrl) continue;
+    currentPersonUrl = await runReplicatePrediction({
+      human_img: currentPersonUrl,
+      garm_img: garment.imageUrl,
+      garment_des: garment.name || garment.category,
+      category: replicateCategory(garment.category),
+    });
+  }
+
+  return currentPersonUrl;
+}
+
 // ── Fallback: stylised SVG when no image model is configured ──────────────────
 
 function wait(milliseconds: number): Promise<void> {
@@ -224,7 +301,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one garment is required to generate a try-on look.' }, { status: 400 });
     }
 
-    // Preferred path: a real photorealistic try-on via Gemini image generation.
+    // Preferred path: Replicate's IDM-VTON model — real photo try-on with a
+    // working free tier (Gemini's image model requires billing, so it's second).
+    if (REPLICATE_TOKEN) {
+      try {
+        const resultUrl = await generateWithReplicate(userImageUrl || '', garmentList);
+        return NextResponse.json({ resultImageUrl: resultUrl, engine: 'replicate' });
+      } catch (replicateError) {
+        const reason = replicateError instanceof Error ? replicateError.message : 'Replicate generation failed.';
+        console.error('Replicate try-on failed:', reason);
+        if (!GEMINI_KEY) {
+          const fallback = await generateFallbackSVG(garmentList, userImageUrl || '', contextText);
+          return NextResponse.json({ resultImageUrl: fallback, engine: 'svg-fallback', warning: reason });
+        }
+        // fall through to try Gemini next
+      }
+    }
+
     if (GEMINI_KEY) {
       try {
         const resultUrl = await generateWithGemini(userImageUrl || '', garmentList, contextText);
