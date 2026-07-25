@@ -36,6 +36,14 @@ async function toBlob(url: string): Promise<Blob> {
   return new Blob([buffer], { type: mimeType });
 }
 
+async function toDataUrl(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('The free try-on engine returned an image that could not be downloaded.');
+  const mimeType = res.headers.get('content-type')?.split(';')[0] || 'image/webp';
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
+
 let hfClientPromise: Promise<GradioClient> | null = null;
 function getHfClient(): Promise<GradioClient> {
   if (!hfClientPromise) hfClientPromise = GradioClient.connect(HF_SPACE);
@@ -73,7 +81,11 @@ async function runHuggingFaceTryOn(personUrl: string, garment: GarmentInput): Pr
       if (config?.root) imageUrl = `${config.root}${apiPrefix}/file=${first.path}`;
     }
     if (!imageUrl) throw new Error('The free try-on engine returned no image.');
-    return imageUrl;
+    // The Space's file URL is a temporary link into its own /tmp storage and
+    // can vanish within seconds (before a second garment call re-fetches it,
+    // or before the browser reopens it later from history) — convert it to a
+    // permanent, self-contained data URL right away.
+    return imageUrl.startsWith('data:') ? imageUrl : await toDataUrl(imageUrl);
   } catch (error) {
     // @gradio/client's predict() rejects with a plain status object
     // ({ stage: 'error', message: '...' }), not an Error instance, on

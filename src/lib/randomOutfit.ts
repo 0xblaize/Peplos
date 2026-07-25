@@ -19,9 +19,10 @@ function topScorers(items: ClosetItem[], thermalTarget: number, rainy: boolean):
 }
 
 /**
- * Picks a weather-appropriate look from the closet: a single "full outfit"
- * item, a non-clashing top+bottom pair, or a lone item — mirroring the same
- * single/pair invariant the dashboard's manual selection enforces.
+ * Picks a weather-appropriate look from the closet. Prefers a single item
+ * (full outfit or lone piece) over a top+bottom pair — the free Hugging Face
+ * engine dresses garments one at a time, so a pair means two sequential
+ * generation calls, which is much more likely to time out.
  */
 export function pickRandomWeatherOutfit(closet: ClosetItem[], weather: WeatherSnapshot): ClosetItem[] {
   const rainy = /rain|snow|storm|drizzle/i.test(weather.condition) || weather.precipitationChance > 0.4;
@@ -32,8 +33,15 @@ export function pickRandomWeatherOutfit(closet: ClosetItem[], weather: WeatherSn
   const tops = available.filter((item) => item.category === 'top');
   const bottoms = available.filter((item) => item.category === 'bottom');
 
-  // Prefer a top+bottom pair when both categories exist, so outfits stay
-  // varied rather than always collapsing to a single full-outfit item.
+  if (fullOutfits.length > 0) {
+    const pick = pickRandom(topScorers(fullOutfits, thermalTarget, rainy));
+    if (pick) return [pick];
+  }
+
+  const single = pickRandom(topScorers([...tops, ...bottoms], thermalTarget, rainy));
+  if (single) return [single];
+
+  // Only fall back to a top+bottom pair if that's genuinely all we have.
   if (tops.length > 0 && bottoms.length > 0) {
     const bestTops = topScorers(tops, thermalTarget, rainy);
     const bestBottoms = topScorers(bottoms, thermalTarget, rainy);
@@ -44,16 +52,7 @@ export function pickRandomWeatherOutfit(closet: ClosetItem[], weather: WeatherSn
         return [top, bottom];
       }
     }
-    // Fall through if no non-clashing pair was found in a few tries.
   }
-
-  if (fullOutfits.length > 0) {
-    const pick = pickRandom(topScorers(fullOutfits, thermalTarget, rainy));
-    if (pick) return [pick];
-  }
-
-  const single = pickRandom(topScorers([...tops, ...bottoms], thermalTarget, rainy));
-  if (single) return [single];
 
   const anything = pickRandom(available);
   return anything ? [anything] : [];
