@@ -425,6 +425,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one garment is required to generate a try-on look.' }, { status: 400 });
     }
 
+    const engineFailures: string[] = [];
+
     // Preferred path: a free Hugging Face Space — no API key, no billing.
     // Slower/less reliable (shared community GPU), so it falls through fast
     // to the paid engines below if it errors or the space is unavailable.
@@ -435,7 +437,7 @@ export async function POST(request: NextRequest) {
       } catch (hfError) {
         const reason = hfError instanceof Error ? hfError.message : 'Free try-on engine failed.';
         console.error('Hugging Face try-on failed:', reason);
-        // fall through to Replicate / Gemini / SVG below
+        engineFailures.push(`Hugging Face: ${reason}`);
       }
     }
 
@@ -456,11 +458,7 @@ export async function POST(request: NextRequest) {
       } catch (replicateError) {
         const reason = replicateError instanceof Error ? replicateError.message : 'Replicate generation failed.';
         console.error('Replicate try-on failed:', reason);
-        if (!GEMINI_KEY) {
-          const fallback = await generateFallbackSVG(garmentList, userImageUrl || '', contextText);
-          return NextResponse.json({ resultImageUrl: fallback, engine: 'svg-fallback', warning: reason });
-        }
-        // fall through to try Gemini next
+        engineFailures.push(`Replicate: ${reason}`);
       }
     }
 
@@ -469,12 +467,15 @@ export async function POST(request: NextRequest) {
         const resultUrl = await generateWithGemini(userImageUrl || '', garmentList, contextText);
         return NextResponse.json({ resultImageUrl: resultUrl, engine: 'gemini' });
       } catch (geminiError) {
-        // Don't kill the demo — fall back to the stylised SVG but report why.
         const reason = geminiError instanceof Error ? geminiError.message : 'Gemini generation failed.';
-        console.error('Gemini try-on failed, falling back to SVG:', reason);
-        const fallback = await generateFallbackSVG(garmentList, userImageUrl || '', contextText);
-        return NextResponse.json({ resultImageUrl: fallback, engine: 'svg-fallback', warning: reason });
+        console.error('Gemini try-on failed:', reason);
+        engineFailures.push(`Gemini: ${reason}`);
       }
+    }
+
+    if (engineFailures.length > 0) {
+      const fallback = await generateFallbackSVG(garmentList, userImageUrl || '', contextText);
+      return NextResponse.json({ resultImageUrl: fallback, engine: 'svg-fallback', warning: engineFailures.join(' | ') });
     }
 
     // No image key configured — stylised placeholder so the UI still works.
