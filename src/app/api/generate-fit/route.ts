@@ -24,6 +24,9 @@ const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 // Gemini because Gemini's image model requires billing with zero free quota.
 const REPLICATE_TOKEN = process.env.REPLICATE_API_TOKEN;
 const REPLICATE_MODEL = process.env.REPLICATE_VTON_MODEL || 'cuuupid/idm-vton';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 interface InlineImage {
   mimeType: string;
@@ -49,6 +52,31 @@ async function toInlineImage(url: string): Promise<InlineImage | null> {
       return { mimeType, data: buffer.toString('base64') };
     }
     return null;
+  } catch {
+    return null;
+  }
+}
+
+async function toPublicImageUrl(url: string): Promise<string | null> {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (!url.startsWith('data:')) return null;
+  if (!supabase) return null;
+
+  try {
+    const dataMatch = url.match(/^data:([^;]+);base64,(.+)$/);
+    if (!dataMatch) return null;
+    const contentType = dataMatch[1];
+    const base64Data = dataMatch[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    const fileName = `temp/${Date.now()}-${Math.random().toString(36).slice(2)}.${contentType.split('/')[1] || 'png'}`;
+    const { error } = await supabase.storage.from('garments').upload(fileName, buffer, {
+      contentType,
+      upsert: true,
+    });
+
+    if (error) return null;
+    return supabase.storage.from('garments').getPublicUrl(fileName).data.publicUrl;
   } catch {
     return null;
   }
@@ -147,17 +175,43 @@ function replicateCategory(category: string): 'upper_body' | 'lower_body' | 'dre
   return 'upper_body';
 }
 
+let cachedReplicateVersion: string | null = null;
+
+/** Resolves the model's latest published version ID (also confirms the slug is real). */
+async function resolveReplicateVersion(): Promise<string> {
+  if (cachedReplicateVersion) return cachedReplicateVersion;
+
+  const res = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_MODEL}`, {
+    headers: { Authorization: `Bearer ${REPLICATE_TOKEN}` },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(
+      data?.detail
+        ? `Replicate model "${REPLICATE_MODEL}" — ${data.detail}`
+        : `Replicate model "${REPLICATE_MODEL}" could not be found (${res.status}). Check REPLICATE_VTON_MODEL.`,
+    );
+  }
+
+  const versionId = data?.latest_version?.id;
+  if (!versionId) throw new Error(`Replicate model "${REPLICATE_MODEL}" has no published version to run.`);
+  cachedReplicateVersion = versionId;
+  return versionId;
+}
+
 async function runReplicatePrediction(input: Record<string, unknown>): Promise<string> {
   if (!REPLICATE_TOKEN) throw new Error('REPLICATE_API_TOKEN is not set.');
 
-  const createRes = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_MODEL}/predictions`, {
+  const version = await resolveReplicateVersion();
+
+  const createRes = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${REPLICATE_TOKEN}`,
       'Content-Type': 'application/json',
       Prefer: 'wait=50',
     },
-    body: JSON.stringify({ input }),
+    body: JSON.stringify({ version, input }),
   });
 
   let prediction = await createRes.json();
@@ -223,6 +277,7 @@ async function generateFallbackSVG(garments: GarmentInput[], userImageUrl: strin
   const garmentListText = garments
     .map((garment, index) => `${index + 1}. ${garment.name} (${garment.category}${garment.color ? `, ${garment.color}` : ''})`)
     .join('; ');
+  const safeUserImage = userImageUrl && userImageUrl.startsWith('http') ? userImageUrl : '/base-model-placeholder.svg';
   const prompt = `You are a premium vector graphic designer.
 Generate a modern raw SVG code representing a virtual try-on of a person wearing one or more selected garments.
 
@@ -305,7 +360,17 @@ export async function POST(request: NextRequest) {
     // working free tier (Gemini's image model requires billing, so it's second).
     if (REPLICATE_TOKEN) {
       try {
-        const resultUrl = await generateWithReplicate(userImageUrl || '', garmentList);
+        const publicUserImageUrl = await toPublicImageUrl(userImageUrl || '');
+        const publicGarments = await Promise.all(
+          garmentList.map(async (garment) => ({
+            ...garment,
+            imageUrl: (await toPublicImageUrl(garment.imageUrl)) || garment.imageUrl,
+          })),
+        );
+        if (!publicUserImageUrl) {
+          throw new Error('Could not prepare the base model photo for Replicate.');
+        }
+        const resultUrl = await generateWithReplicate(publicUserImageUrl, publicGarments);
         return NextResponse.json({ resultImageUrl: resultUrl, engine: 'replicate' });
       } catch (replicateError) {
         const reason = replicateError instanceof Error ? replicateError.message : 'Replicate generation failed.';

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-label="Peplos placeholder model">
+  <rect width="800" height="1000" rx="48" fill="#161214"/>
+  <rect x="40" y="40" width="720" height="920" rx="36" fill="#221d20" stroke="#3b3037" stroke-width="4"/>
+  <circle cx="400" cy="340" r="150" fill="#f6d7be"/>
+  <path d="M220 740c20-170 120-240 180-240s160 70 180 240" fill="#e88bbf"/>
+  <rect x="258" y="424" width="284" height="300" rx="36" fill="#2e272d"/>
+  <path d="M300 420c20-100 70-150 100-150s80 50 100 150" fill="#f4c9a8"/>
+  <circle cx="340" cy="330" r="12" fill="#221c1f"/>
+  <circle cx="460" cy="330" r="12" fill="#221c1f"/>
+  <path d="M340 395c20 18 100 18 120 0" stroke="#b56a4b" stroke-width="10" stroke-linecap="round"/>
+  <text x="400" y="860" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#f6f1ea">PEPLOS MODEL</text>
+  <text x="400" y="910" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#9b8f95">Add a real photo to unlock full try-on rendering</text>
+</svg>
