@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Client as GradioClient } from '@gradio/client';
 import Groq from 'groq-sdk';
 
 // The person photo can be a multi-MB base64 data URL, so run on the Node
@@ -27,6 +28,12 @@ const REPLICATE_MODEL = process.env.REPLICATE_VTON_MODEL || 'cuuupid/idm-vton';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// Hugging Face Space (community GPU, no API key or billing) — the truly free
+// try-on path. Slower and less reliable than a paid API (queueing, cold
+// starts, occasional downtime), so it's tried first but falls through fast.
+const HF_SPACE = process.env.HF_VTON_SPACE || 'yisol/IDM-VTON';
+const HF_DISABLED = process.env.DISABLE_HF_VTON === 'true';
 
 interface InlineImage {
   mimeType: string;
@@ -164,6 +171,68 @@ async function generateWithGemini(
 
   const textNote = responseParts.find((p: { text?: string }) => p.text)?.text;
   throw new Error(textNote ? `Gemini returned text, not an image: ${textNote}` : 'Gemini returned no image.');
+}
+
+// ── Hugging Face Space: free community-GPU try-on, garment-by-garment ─────────
+
+async function toBlob(url: string): Promise<Blob> {
+  const dataMatch = url.match(/^data:([^;]+);base64,(.+)$/);
+  if (dataMatch) {
+    const buffer = Buffer.from(dataMatch[2], 'base64');
+    return new Blob([buffer], { type: dataMatch[1] });
+  }
+  if (!/^https?:\/\//i.test(url)) throw new Error('Unsupported image reference.');
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Could not download an image for the free try-on engine.');
+  const mimeType = res.headers.get('content-type')?.split(';')[0] || 'image/jpeg';
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return new Blob([buffer], { type: mimeType });
+}
+
+let hfClientPromise: Promise<GradioClient> | null = null;
+function getHfClient(): Promise<GradioClient> {
+  if (!hfClientPromise) hfClientPromise = GradioClient.connect(HF_SPACE);
+  return hfClientPromise;
+}
+
+/** IDM-VTON's Gradio demo takes: person image, garment image, description, auto-mask, auto-crop, steps, seed. */
+async function runHuggingFaceTryOn(personUrl: string, garment: GarmentInput): Promise<string> {
+  const client = await getHfClient();
+  const [personBlob, garmentBlob] = await Promise.all([toBlob(personUrl), toBlob(garment.imageUrl)]);
+
+  try {
+    const result = await client.predict('/tryon', [
+      personBlob,
+      garmentBlob,
+      garment.name || garment.category,
+      true,
+      false,
+      30,
+      42,
+    ]);
+
+    const data = result.data as unknown[];
+    const first = data?.[0] as { url?: string; path?: string } | string | undefined;
+    const imageUrl = typeof first === 'string' ? first : first?.url || first?.path;
+    if (!imageUrl) throw new Error('The free try-on engine returned no image.');
+    return imageUrl;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Hugging Face try-on failed: ${message}`);
+  }
+}
+
+/** Dresses the person one garment at a time on the free Hugging Face Space. */
+async function generateWithHuggingFace(userImageUrl: string, garments: GarmentInput[]): Promise<string> {
+  if (HF_DISABLED) throw new Error('Free try-on engine is disabled.');
+  if (!userImageUrl) throw new Error('Could not read the base model photo. Upload a fresh photo and retry.');
+
+  let currentPersonUrl = userImageUrl;
+  for (const garment of garments) {
+    if (!garment.imageUrl) continue;
+    currentPersonUrl = await runHuggingFaceTryOn(currentPersonUrl, garment);
+  }
+  return currentPersonUrl;
 }
 
 // ── Replicate IDM-VTON: real photo try-on, garment-by-garment ─────────────────
@@ -356,8 +425,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one garment is required to generate a try-on look.' }, { status: 400 });
     }
 
-    // Preferred path: Replicate's IDM-VTON model — real photo try-on with a
-    // working free tier (Gemini's image model requires billing, so it's second).
+    // Preferred path: a free Hugging Face Space — no API key, no billing.
+    // Slower/less reliable (shared community GPU), so it falls through fast
+    // to the paid engines below if it errors or the space is unavailable.
+    if (!HF_DISABLED) {
+      try {
+        const resultUrl = await generateWithHuggingFace(userImageUrl || '', garmentList);
+        return NextResponse.json({ resultImageUrl: resultUrl, engine: 'huggingface' });
+      } catch (hfError) {
+        const reason = hfError instanceof Error ? hfError.message : 'Free try-on engine failed.';
+        console.error('Hugging Face try-on failed:', reason);
+        // fall through to Replicate / Gemini / SVG below
+      }
+    }
+
     if (REPLICATE_TOKEN) {
       try {
         const publicUserImageUrl = await toPublicImageUrl(userImageUrl || '');

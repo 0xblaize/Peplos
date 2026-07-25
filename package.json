@@ -10,6 +10,7 @@
     "copy-icon": "node copy-icon.mjs"
   },
   "dependencies": {
+    "@gradio/client": "^2.3.1",
     "@react-three/drei": "10.7.7",
     "@react-three/fiber": "9.6.1",
     "@supabase/supabase-js": "^2.47.10",
