@@ -11,7 +11,10 @@ import Sandbox from '@/components/dashboard/Sandbox';
 import LookbookStage from '@/components/dashboard/LookbookStage';
 import EditItemDrawer from '@/components/dashboard/EditItemDrawer';
 import CalendarSyncModal from '@/components/dashboard/CalendarSyncModal';
+import LookHistoryDrawer from '@/components/dashboard/LookHistoryDrawer';
 import type { ClosetFilter } from '@/components/dashboard/FilterPills';
+import { getLookHistory, addLookHistoryEntry, type LookHistoryEntry } from '@/lib/lookHistory';
+import { pickRandomWeatherOutfit } from '@/lib/randomOutfit';
 
 interface ContextResponse {
   weather: WeatherSnapshot;
@@ -39,12 +42,18 @@ export default function DashboardPage() {
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
   const [generationError, setGenerationError] = useState('');
   const [favorite, setFavorite] = useState(false);
+  const [lookHistory, setLookHistory] = useState<LookHistoryEntry[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const refreshCloset = useCallback(() => {
     getCloset().then(setCloset);
   }, []);
 
   useEffect(refreshCloset, [refreshCloset]);
+
+  useEffect(() => {
+    setLookHistory(getLookHistory());
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -96,8 +105,9 @@ export default function DashboardPage() {
     setSelectedGarments((current) => current.filter((selected) => selected.id !== item.id));
   }
 
-  async function generateLook() {
-    if (!basePhotoUrl || selectedGarments.length === 0 || isGenerating) return;
+  async function generateLook(garmentsOverride?: ClosetItem[]) {
+    const garments = garmentsOverride ?? selectedGarments;
+    if (!basePhotoUrl || garments.length === 0 || isGenerating) return;
     setIsGenerating(true);
     setGenerationError('');
     setGeneratedResult(null);
@@ -113,7 +123,7 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userImageUrl: basePhotoUrl,
-          garments: selectedGarments.map((item) => ({
+          garments: garments.map((item) => ({
             name: item.name,
             category: item.category,
             imageUrl: item.image_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80',
@@ -125,13 +135,38 @@ export default function DashboardPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Unable to generate this look.');
       setGeneratedResult(data.resultImageUrl);
-      // If Gemini fell back to the placeholder, tell the user why.
       if (data.warning) setGenerationError(`Showing a placeholder — ${data.warning}`);
+      if (data.engine === 'huggingface') {
+        setLookHistory(addLookHistoryEntry({
+          imageUrl: data.resultImageUrl,
+          garments: garments.map((item) => ({ name: item.name, category: item.category })),
+        }));
+      }
     } catch (error) {
       setGenerationError(error instanceof Error ? error.message : 'Unable to generate this look.');
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  function handleSurpriseMe() {
+    if (isGenerating) return;
+    if (!context?.weather) {
+      setGenerationError('Weather context is still loading — try again in a moment.');
+      return;
+    }
+    const available = closet.filter((item) => !item.in_laundry);
+    if (available.length === 0) {
+      setGenerationError('Add some clean garments to your closet first.');
+      return;
+    }
+    const picked = pickRandomWeatherOutfit(available, context.weather);
+    if (picked.length === 0) {
+      setGenerationError('Could not find a matching outfit for today’s weather.');
+      return;
+    }
+    setSelectedGarments(picked);
+    generateLook(picked);
   }
 
   function handleToggleDirty(item: ClosetItem) {
@@ -153,12 +188,12 @@ export default function DashboardPage() {
       <main className="mx-auto max-w-[1800px] px-2.5 py-3 sm:px-5 sm:py-5 lg:px-7">
         <div className="mb-3 flex items-center gap-2 px-1 text-[9px] font-bold uppercase tracking-[0.22em] text-peplos-muted sm:mb-4 sm:text-[10px] sm:tracking-[0.28em]"><Sparkles size={12} className="text-peplos-pink sm:h-[13px] sm:w-[13px]" /> The daily lookbook</div>
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(360px,35%)_minmax(0,65%)] lg:gap-5">
-          <section id="closet" className="dashboard-scroll min-h-0 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1"><Sandbox closet={closet} persisted={persisted} filter={filter} selectedGarments={selectedGarments} basePhotoUrl={basePhotoUrl} weather={context?.weather ?? null} nextEvent={context?.schedule[0]} contextSource={context?.source ?? null} isGenerating={isGenerating} onFilterChange={setFilter} onAdded={refreshCloset} onSelectGarment={handleSelectGarment} onOpenItem={setSelectedItem} onToggleDirty={handleToggleDirty} onDelete={handleDelete} onBasePhotoChange={setBasePhotoUrl} onGenerate={generateLook} onRemoveGarment={removeGarment} onOpenCalendarModal={() => setCalendarModalOpen(true)} /></section>
-          <aside className="min-w-0 lg:sticky lg:top-3"><LookbookStage basePhotoUrl={basePhotoUrl} selectedGarments={selectedGarments} generatedResult={generatedResult} isGenerating={isGenerating} loadingPhrase={LOADING_PHRASES[loadingPhraseIndex]} error={generationError} favorite={favorite} onReroll={generateLook} onToggleFavorite={() => setFavorite((current) => !current)} /></aside>
+          <section id="closet" className="dashboard-scroll min-h-0 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1"><Sandbox closet={closet} persisted={persisted} filter={filter} selectedGarments={selectedGarments} basePhotoUrl={basePhotoUrl} weather={context?.weather ?? null} nextEvent={context?.schedule[0]} contextSource={context?.source ?? null} isGenerating={isGenerating} onFilterChange={setFilter} onAdded={refreshCloset} onSelectGarment={handleSelectGarment} onOpenItem={setSelectedItem} onToggleDirty={handleToggleDirty} onDelete={handleDelete} onBasePhotoChange={setBasePhotoUrl} onGenerate={() => generateLook()} onSurpriseMe={handleSurpriseMe} onRemoveGarment={removeGarment} onOpenCalendarModal={() => setCalendarModalOpen(true)} onOpenHistory={() => setHistoryOpen(true)} /></section>
+          <aside className="min-w-0 lg:sticky lg:top-3"><LookbookStage basePhotoUrl={basePhotoUrl} selectedGarments={selectedGarments} generatedResult={generatedResult} isGenerating={isGenerating} loadingPhrase={LOADING_PHRASES[loadingPhraseIndex]} error={generationError} favorite={favorite} onReroll={() => generateLook()} onToggleFavorite={() => setFavorite((current) => !current)} /></aside>
         </div>
       </main>
 
-      <EditItemDrawer item={selectedItem} disabled={!persisted} onClose={() => setSelectedItem(null)} onSaved={refreshCloset} /><CalendarSyncModal open={calendarModalOpen} onClose={() => setCalendarModalOpen(false)} />
+      <EditItemDrawer item={selectedItem} disabled={!persisted} onClose={() => setSelectedItem(null)} onSaved={refreshCloset} /><CalendarSyncModal open={calendarModalOpen} onClose={() => setCalendarModalOpen(false)} /><LookHistoryDrawer open={historyOpen} entries={lookHistory} onClose={() => setHistoryOpen(false)} />
     </div>
   );
 }

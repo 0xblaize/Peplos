@@ -1,6 +1,6 @@
 'use client';
 
-import { LoaderCircle, Sparkles, X } from 'lucide-react';
+import { LoaderCircle, Shuffle, X } from 'lucide-react';
 import type { ClosetItem } from '@/lib/supabase';
 
 interface GenerationActionProps {
@@ -9,9 +9,10 @@ interface GenerationActionProps {
   isGenerating: boolean;
   onRemove: (item: ClosetItem) => void;
   onGenerate: () => void;
+  onSurpriseMe: () => void;
 }
 
-export default function GenerationAction({ basePhotoUrl, selectedGarments, isGenerating, onRemove, onGenerate }: GenerationActionProps) {
+export default function GenerationAction({ basePhotoUrl, selectedGarments, isGenerating, onRemove, onGenerate, onSurpriseMe }: GenerationActionProps) {
   const ready = Boolean(basePhotoUrl && selectedGarments.length > 0);
   const isFullOutfit = selectedGarments.some((item) => item.category === 'full outfit');
   const maxSlots = isFullOutfit ? 1 : 2;
@@ -39,10 +40,15 @@ export default function GenerationAction({ basePhotoUrl, selectedGarments, isGen
         )) : <p className="px-2 text-xs text-white/35">Select a garment from your closet to begin.</p>}
       </div>
       <button type="button" onClick={onGenerate} disabled={!ready || isGenerating} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-peplos-pink px-5 py-4 text-xs font-bold uppercase tracking-[0.16em] text-peplos-ink transition hover:bg-[#f09bc3] disabled:cursor-not-allowed disabled:opacity-30">
-        {isGenerating ? <LoaderCircle size={16} className="animate-spin" /> : <Sparkles size={16} />}
+        {isGenerating ? <LoaderCircle size={16} className="animate-spin" /> : <img src="/icon.png" alt="" className="h-4 w-4 rounded-sm" />}
         {isGenerating ? 'Generating look' : 'Generate look'}
       </button>
       {!ready && <p className="mt-3 text-center text-[10px] text-white/35">Add your base photo and at least one clean garment.</p>}
+      <button type="button" onClick={onSurpriseMe} disabled={!basePhotoUrl || isGenerating} className="mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-white/15 px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-white/75 transition hover:border-peplos-pink hover:text-peplos-pink disabled:cursor-not-allowed disabled:opacity-30">
+        <Shuffle size={14} />
+        <span className="sm:hidden">Surprise me</span>
+        <span className="hidden sm:inline">Surprise me for today&apos;s weather</span>
+      </button>
     </section>
   );
 }

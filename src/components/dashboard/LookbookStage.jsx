@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Heart, LoaderCircle, RefreshCcw, ScanFace, Share2, Sparkles } from 'lucide-react';
+import { Download, Heart, LoaderCircle, RefreshCcw, ScanFace, Share2 } from 'lucide-react';
 
 export default function LookbookStage({ basePhotoUrl, selectedGarments, generatedResult, isGenerating, loadingPhrase, error, favorite, onReroll, onToggleFavorite }) {
   const [shared, setShared] = useState(false);
@@ -20,7 +20,7 @@ export default function LookbookStage({ basePhotoUrl, selectedGarments, generate
 
   return (
     <section className="flex min-h-[560px] flex-col overflow-hidden rounded-3xl bg-peplos-night text-white shadow-soft sm:min-h-[680px] sm:rounded-4xl lg:min-h-[calc(100vh-2rem)]">
-      <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-4 sm:gap-4 sm:px-7 sm:py-6"><div><p className="dashboard-eyebrow text-peplos-pink">Lookbook stage</p><h2 className="mt-2 font-['Anton'] text-3xl uppercase leading-[0.9] tracking-[-0.02em] sm:text-5xl">The reveal.</h2></div><span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-peplos-pink"><Sparkles size={17} /></span></div>
+      <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-4 sm:gap-4 sm:px-7 sm:py-6"><div><p className="dashboard-eyebrow text-peplos-pink">Lookbook stage</p><h2 className="mt-2 font-['Anton'] text-3xl uppercase leading-[0.9] tracking-[-0.02em] sm:text-5xl">The reveal.</h2></div><span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-peplos-pink"><img src="/icon.png" alt="Peplos" className="h-[17px] w-[17px] rounded-sm" /></span></div>
 
       <div className="flex flex-1 flex-col p-3 sm:p-6">
         <div className={`relative flex min-h-[410px] flex-1 items-center sm:min-h-[58vh] justify-center overflow-hidden rounded-3xl border p-4 transition ${isGenerating ? 'border-peplos-pink/70 shadow-[0_0_80px_rgba(232,130,180,0.16)]' : 'border-white/10'} bg-[#201d1e]`}>

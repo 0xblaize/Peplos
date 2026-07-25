@@ -1,6 +1,17 @@
 PEPLOS — GENERATIVE AI WARDROBE STUDIO
 ========================================
 
+SHORT POST COPY
+---------------
+Post Description Prompt:
+Peplos is an AI wardrobe studio that turns your closet, weather, and calendar into stylish outfit ideas and virtual try-on previews.
+
+Stacks Used (very short):
+Next.js, React, TypeScript, Tailwind, Supabase, NextAuth, AI APIs.
+
+Short Story:
+A person who always struggled with dressing finally found confidence with Peplos—an AI helper that makes getting dressed feel simple, smart, and stylish.
+
 1. INTRODUCTION
 ---------------
 Peplos is a web-based generative wardrobe studio. It combines a user's personal

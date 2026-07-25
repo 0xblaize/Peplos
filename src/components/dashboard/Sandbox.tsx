@@ -29,14 +29,16 @@ interface SandboxProps {
   onDelete: (id: string) => void;
   onBasePhotoChange: (value: string) => void;
   onGenerate: () => void;
+  onSurpriseMe: () => void;
   onRemoveGarment: (item: ClosetItem) => void;
   onOpenCalendarModal: () => void;
+  onOpenHistory: () => void;
 }
 
-export default function Sandbox({ closet, persisted, filter, selectedGarments, basePhotoUrl, weather, nextEvent, contextSource, isGenerating, onFilterChange, onAdded, onSelectGarment, onOpenItem, onToggleDirty, onDelete, onBasePhotoChange, onGenerate, onRemoveGarment, onOpenCalendarModal }: SandboxProps) {
+export default function Sandbox({ closet, persisted, filter, selectedGarments, basePhotoUrl, weather, nextEvent, contextSource, isGenerating, onFilterChange, onAdded, onSelectGarment, onOpenItem, onToggleDirty, onDelete, onBasePhotoChange, onGenerate, onSurpriseMe, onRemoveGarment, onOpenCalendarModal, onOpenHistory }: SandboxProps) {
   return (
     <div className="flex min-h-0 flex-col gap-4">
-      <div><p className="dashboard-eyebrow flex items-center gap-2"><Sparkles size={12} className="text-peplos-pink" /> Utility zone</p><h1 className="mt-2 font-['Anton'] text-4xl uppercase leading-[0.92] tracking-[-0.02em] text-peplos-ink sm:text-5xl">Build the look.</h1><p className="mt-3 max-w-sm text-sm leading-6 text-peplos-muted">Set the context, choose a piece, and let Peplos turn your closet into an editorial.</p></div>
+      <div><button type="button" onClick={onOpenHistory} className="dashboard-eyebrow flex items-center gap-2 transition hover:text-peplos-pink" title="View your past looks"><Sparkles size={12} className="text-peplos-pink" /> Utility zone</button><h1 className="mt-2 font-['Anton'] text-4xl uppercase leading-[0.92] tracking-[-0.02em] text-peplos-ink sm:text-5xl">Build the look.</h1><p className="mt-3 max-w-sm text-sm leading-6 text-peplos-muted">Set the context, choose a piece, and let Peplos turn your closet into an editorial.</p></div>
       {!persisted && <div className="flex items-start gap-3 rounded-2xl border border-peplos-pink/25 bg-peplos-pink/10 px-4 py-3 text-xs text-peplos-ink/70"><Sparkles size={15} className="mt-0.5 shrink-0 text-peplos-pink" /><p><strong className="font-semibold text-peplos-ink">Demo workspace.</strong> Supabase is not configured, so closet edits are read-only.</p></div>}
       <ContextBar weather={weather} nextEvent={nextEvent} source={contextSource} onOpenCalendar={onOpenCalendarModal} />
       <BaseModelCard value={basePhotoUrl} onChange={onBasePhotoChange} />
@@ -50,7 +52,7 @@ export default function Sandbox({ closet, persisted, filter, selectedGarments, b
 
       <section className="rounded-2xl border border-dashed border-peplos-line bg-white/60 p-4 sm:p-5"><div className="mb-3 flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-peplos-panel"><Plus size={14} /></span><div><p className="text-xs font-semibold">Add another piece</p><p className="text-[10px] text-peplos-muted">Paste, drop, or browse a garment photo.</p></div></div><IngestionZone disabled={!persisted} onAdded={onAdded} /></section>
 
-      <div className="sticky bottom-3 z-20 mt-auto"><GenerationAction basePhotoUrl={basePhotoUrl} selectedGarments={selectedGarments} isGenerating={isGenerating} onRemove={onRemoveGarment} onGenerate={onGenerate} /></div>
+      <div className="sticky bottom-3 z-20 mt-auto"><GenerationAction basePhotoUrl={basePhotoUrl} selectedGarments={selectedGarments} isGenerating={isGenerating} onRemove={onRemoveGarment} onGenerate={onGenerate} onSurpriseMe={onSurpriseMe} /></div>
     </div>
   );
 }
