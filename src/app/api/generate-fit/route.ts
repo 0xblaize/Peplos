@@ -48,8 +48,11 @@ async function runHuggingFaceTryOn(personUrl: string, garment: GarmentInput): Pr
   const [personBlob, garmentBlob] = await Promise.all([toBlob(personUrl), toBlob(garment.imageUrl)]);
 
   try {
+    // The person image goes through a Gradio ImageEditor component, which
+    // expects a { background, layers, composite } shape server-side — not a
+    // raw file — or the Space's Python code throws a bare AttributeError.
     const result = await client.predict('/tryon', [
-      personBlob,
+      { background: personBlob, layers: [], composite: personBlob },
       garmentBlob,
       garment.name || garment.category,
       true,
